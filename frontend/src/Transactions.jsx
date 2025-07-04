@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from './Navbar';
 
 const CATEGORIES = [
   'Travel',
@@ -82,7 +81,6 @@ function Transactions({ token, user, onLogout }) {
 
   return (
     <>
-      <Navbar user={user} onLogout={onLogout} />
       <div className="page-card">
         <h2>Transactions</h2>
         <form onSubmit={handleSubmit} style={{ marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
