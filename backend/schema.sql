@@ -6,7 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) NOT NULL, -- e.g., 'admin', 'user', etc.
     password VARCHAR(255) NOT NULL,
     department VARCHAR(100) NOT NULL, -- e.g., 'Finance', 'HR', 'Digital Transformation', 'Planning', 'Data&AI'
-    profile_picture_url TEXT
+    profile_picture_url TEXT,
+    employee_grade VARCHAR(50),
+    designation VARCHAR(100),
+    firebase_uid VARCHAR(128)
 );
 
 -- Transactions table

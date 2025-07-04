@@ -106,7 +106,7 @@ app.get('/audit-logs', authenticateToken, requireAdmin, async (req, res) => {
 // GET /users (admin only)
 app.get('/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, email, role FROM users ORDER BY id');
+    const result = await pool.query('SELECT id, name, email, role, department, employee_grade, designation FROM users ORDER BY id');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -122,7 +122,7 @@ app.get('/users/:id', authenticateToken, async (req, res) => {
     return res.status(403).json({ message: 'Forbidden' });
   }
   try {
-    const result = await pool.query('SELECT id, name, email, role, department, profile_picture_url FROM users WHERE id = $1', [id]);
+    const result = await pool.query('SELECT id, name, email, role, department, profile_picture_url, employee_grade, designation FROM users WHERE id = $1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -131,7 +131,39 @@ app.get('/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PATCH /users/:id/role (admin only)
+// PATCH /users/:id (admin only) - update user details in both DB and Firebase
+app.patch('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { name, email, department, role, employee_grade, designation } = req.body;
+  if (!name || !email || !department || !role) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+  try {
+    // Get firebase_uid
+    const userRes = await pool.query('SELECT firebase_uid FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    const firebase_uid = userRes.rows[0].firebase_uid;
+    // Update DB
+    await pool.query(
+      'UPDATE users SET name = $1, email = $2, department = $3, role = $4, employee_grade = $5, designation = $6 WHERE id = $7',
+      [name, email, department, role, employee_grade, designation, id]
+    );
+    // Update Firebase Auth
+    if (firebase_uid) {
+      await admin.auth().updateUser(firebase_uid, {
+        email,
+        displayName: name,
+      });
+      await admin.auth().setCustomUserClaims(firebase_uid, { role });
+    }
+    res.json({ message: 'User updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH /users/:id/role (admin only) - update role in both DB and Firebase
 app.patch('/users/:id/role', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -143,77 +175,15 @@ app.patch('/users/:id/role', authenticateToken, requireAdmin, async (req, res) =
     if (parseInt(id) === req.user.id) {
       return res.status(403).json({ message: 'You cannot change your own role' });
     }
+    // Get firebase_uid
+    const userRes = await pool.query('SELECT firebase_uid FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    const firebase_uid = userRes.rows[0].firebase_uid;
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
-    res.json({ message: 'Role updated' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// POST /register
-app.post('/register', async (req, res) => {
-  const { name, email, password, department } = req.body;
-  const role = 'user'; // Always set role to 'user' on registration
-  const ALLOWED_DEPARTMENTS = ['Finance', 'HR', 'Digital Transformation', 'Planning', 'Data&AI'];
-  if (!name || !email || !password || !department) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-  if (!ALLOWED_DEPARTMENTS.includes(department)) {
-    return res.status(400).json({ message: 'Invalid department' });
-  }
-  try {
-    // Check if user already exists
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ message: 'Email already registered' });
+    if (firebase_uid) {
+      await admin.auth().setCustomUserClaims(firebase_uid, { role });
     }
-    // Hash password
-    const hashed = await bcrypt.hash(password, 10);
-    // Insert user
-    await pool.query(
-      'INSERT INTO users (name, email, role, password, department) VALUES ($1, $2, $3, $4, $5)',
-      [name, email, role, hashed, department]
-    );
-    res.status(201).json({ message: 'User registered successfully' });
-  } catch (err) {
-    console.error(err); // Log error
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// POST /transactions
-app.post('/transactions', authenticateToken, async (req, res) => {
-  const { amount, category, justification, date, department } = req.body;
-  let dept = department;
-  if (req.user.role !== 'admin') {
-    dept = req.user.department;
-  }
-  if (!amount || !category || !justification || !date || !dept) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-  try {
-    await pool.query(
-      'INSERT INTO transactions (amount, category, justification, department, timestamp, status) VALUES ($1, $2, $3, $4, $5, $6)',
-      [amount, category, justification, dept, date, 'Pending']
-    );
-    res.status(201).json({ message: 'Transaction submitted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// PATCH /transactions/:id/status (admin only)
-app.patch('/transactions/:id/status', authenticateToken, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
-    return res.status(400).json({ message: 'Invalid status' });
-  }
-  try {
-    await pool.query('UPDATE transactions SET status = $1 WHERE id = $2', [status, id]);
-    res.json({ message: 'Status updated' });
+    res.json({ message: 'Role updated' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -222,7 +192,7 @@ app.patch('/transactions/:id/status', authenticateToken, requireAdmin, async (re
 
 // POST /users (admin only)
 app.post('/users', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, password, department, role } = req.body;
+  const { name, email, password, department, role, employee_grade, designation } = req.body;
   const ALLOWED_DEPARTMENTS = ['Finance', 'HR', 'Digital Transformation', 'Planning', 'Data&AI'];
   const ALLOWED_ROLES = ['user', 'admin'];
   if (!name || !email || !password || !department || !role) {
@@ -240,12 +210,25 @@ app.post('/users', authenticateToken, requireAdmin, async (req, res) => {
     if (existing.rows.length > 0) {
       return res.status(409).json({ message: 'Email already registered' });
     }
+    // Create user in Firebase Auth
+    let fbUser;
+    try {
+      fbUser = await admin.auth().createUser({
+        email,
+        password,
+        displayName: name,
+      });
+      // Set custom claims for role
+      await admin.auth().setCustomUserClaims(fbUser.uid, { role });
+    } catch (fbErr) {
+      return res.status(500).json({ message: 'Firebase: ' + fbErr.message });
+    }
     // Hash password
     const hashed = await bcrypt.hash(password, 10);
-    // Insert user
+    // Insert user in DB with firebase_uid
     await pool.query(
-      'INSERT INTO users (name, email, role, password, department) VALUES ($1, $2, $3, $4, $5)',
-      [name, email, role, hashed, department]
+      'INSERT INTO users (name, email, role, password, department, employee_grade, designation, firebase_uid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [name, email, role, hashed, department, employee_grade || null, designation || null, fbUser.uid]
     );
     res.status(201).json({ message: 'User created successfully' });
   } catch (err) {
@@ -352,6 +335,7 @@ app.post('/users/import', authenticateToken, requireAdmin, uploadCSV.single('csv
             password,
             displayName: name,
           });
+          await admin.auth().setCustomUserClaims(fbUser.uid, { role });
         } catch (fbErr) {
           if (fbErr.code === 'auth/email-already-exists') {
             errors.push({ email, error: 'Firebase: Email already exists' });
@@ -364,8 +348,8 @@ app.post('/users/import', authenticateToken, requireAdmin, uploadCSV.single('csv
         // Hash password for DB
         const hashed = await bcrypt.hash(password, 10);
         await pool.query(
-          'INSERT INTO users (name, email, role, password, department) VALUES ($1, $2, $3, $4, $5)',
-          [name, email, role, hashed, department]
+          'INSERT INTO users (name, email, role, password, department, firebase_uid) VALUES ($1, $2, $3, $4, $5, $6)',
+          [name, email, role, hashed, department, fbUser.uid]
         );
         results.push({ email, status: 'Imported' });
       } catch (err) {
@@ -381,6 +365,28 @@ app.post('/users/import', authenticateToken, requireAdmin, uploadCSV.single('csv
   });
   parser.write(req.file.buffer);
   parser.end();
+});
+
+// DELETE /users/:id (admin only) - delete user in both DB and Firebase
+app.delete('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ message: 'You cannot delete yourself' });
+  }
+  try {
+    // Get firebase_uid
+    const userRes = await pool.query('SELECT firebase_uid FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    const firebase_uid = userRes.rows[0].firebase_uid;
+    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    if (firebase_uid) {
+      await admin.auth().deleteUser(firebase_uid);
+    }
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.get('/', (req, res) => {

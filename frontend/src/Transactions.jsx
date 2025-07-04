@@ -28,7 +28,7 @@ function Transactions({ token, user, onLogout }) {
     // Poll every 10 seconds for real-time updates
     const interval = setInterval(fetchTransactions, 10000);
     return () => clearInterval(interval);
-  }, [token, msg]);
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
