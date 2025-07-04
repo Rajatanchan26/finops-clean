@@ -1,12 +1,13 @@
 import '../src/firebase';
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 function LoginPage({ setUser, setToken }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -35,6 +36,20 @@ function LoginPage({ setUser, setToken }) {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetMsg('');
+    setError('');
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      setResetMsg('Password reset email sent! Check your inbox.');
+    } catch (err) {
+      setResetMsg('');
+      setError('Failed to send reset email. Make sure the email is correct and registered.');
+    }
+  };
+
   return (
     <div className="login-container">
       <h2>Login</h2>
@@ -44,8 +59,10 @@ function LoginPage({ setUser, setToken }) {
         <button type="submit">Login</button>
         {error && <p style={{ color: 'red', marginTop: '0.5rem' }}>{error}</p>}
       </form>
-      <div style={{ width: '100%', borderTop: '1px solid #eee', margin: '1.5rem 0 1rem 0' }}></div>
-      <p>Don't have an account? <a href="/signup">Sign up</a></p>
+      <form onSubmit={handleForgotPassword} style={{ marginTop: '1rem' }}>
+        <button type="submit" style={{ background: 'none', color: '#2563eb', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Forgot Password?</button>
+      </form>
+      {resetMsg && <p style={{ color: 'green', marginTop: '0.5rem' }}>{resetMsg}</p>}
     </div>
   );
 }

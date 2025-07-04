@@ -1,0 +1,3 @@
+name,email,password,department,role
+John Doe,john@example.com,Password123,Finance,user
+Jane Admin,jane@example.com,AdminPass456,HR,admin
