@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FaEdit, FaTrash, FaUserShield } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUserShield, FaDownload, FaPlus } from 'react-icons/fa';
+import DashboardLayout from './components/DashboardLayout';
 
 const DEPARTMENTS = [
   'Finance',
@@ -8,9 +9,8 @@ const DEPARTMENTS = [
   'Planning',
   'Data&AI',
 ];
-const ROLES = ['user', 'admin'];
 
-function AdminPanel({ token, user, onLogout }) {
+function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
   const [userMsg, setUserMsg] = useState('');
@@ -19,7 +19,6 @@ function AdminPanel({ token, user, onLogout }) {
     email: '',
     password: '',
     department: DEPARTMENTS[0],
-    role: ROLES[0],
     employee_grade: '',
     designation: '',
   });
@@ -30,6 +29,7 @@ function AdminPanel({ token, user, onLogout }) {
   const [editUserId, setEditUserId] = useState(null);
   const [editUserData, setEditUserData] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch audit logs
   useEffect(() => {
@@ -48,16 +48,19 @@ function AdminPanel({ token, user, onLogout }) {
 
   // Fetch users
   useEffect(() => {
-    if (user.role !== 'admin') return;
-    const fetchUsers = async () => {
-      const res = await fetch('http://localhost:5000/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUsers(data);
-    };
+    if (!user.is_admin) return;
     fetchUsers();
   }, [token, user]);
+
+  const fetchUsers = async () => {
+    setRefreshing(true);
+    const res = await fetch('http://localhost:5000/users', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setUsers(data);
+    setRefreshing(false);
+  };
 
   const makeAdmin = async (id) => {
     setUserMsg('');
@@ -81,21 +84,33 @@ function AdminPanel({ token, user, onLogout }) {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setCreateMsg('');
+    setRefreshing(true);
     try {
+      const userData = {
+        ...newUser,
+        is_admin: false,
+        grade: newUser.employee_grade || '1'
+      };
+      delete userData.role;
+      delete userData.employee_grade;
       const res = await fetch('http://localhost:5000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify(userData),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create user');
       setCreateMsg('User created successfully!');
-      setNewUser({ name: '', email: '', password: '', department: DEPARTMENTS[0], role: ROLES[0], employee_grade: '', designation: '' });
+      setNewUser({ name: '', email: '', password: '', department: DEPARTMENTS[0], employee_grade: '', designation: '' });
+      await fetchUsers();
+      setShowAddModal(false);
     } catch (err) {
       setCreateMsg(err.message);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -105,6 +120,7 @@ function AdminPanel({ token, user, onLogout }) {
     setImportMsg('');
     setImportResult(null);
     setImporting(true);
+    setRefreshing(true);
     const formData = new FormData();
     formData.append('csv', file);
     try {
@@ -120,27 +136,24 @@ function AdminPanel({ token, user, onLogout }) {
           const data = await res.json();
           errorMsg = data.message || errorMsg;
         } else {
-          errorMsg = await res.text(); // This will be the HTML error page
+          errorMsg = await res.text();
         }
         throw new Error(errorMsg);
       }
       const data = await res.json();
       setImportMsg('Import completed!');
       setImportResult(data);
-      // Refresh user list
-      const usersRes = await fetch('http://localhost:5000/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(await usersRes.json());
+      await fetchUsers();
     } catch (err) {
       setImportMsg(err.message);
     } finally {
       setImporting(false);
+      setRefreshing(false);
     }
   };
 
   // CSV template content
-  const csvTemplate = `name,email,password,department,role\nJohn Doe,john@example.com,Password123,Finance,user\nJane Admin,jane@example.com,AdminPass456,HR,admin\n`;
+  const csvTemplate = `name,email,password,department,employee_grade,designation\nJohn Doe,john@example.com,Password123,Finance,1,Analyst\nJane Smith,jane@example.com,Password456,HR,2,Manager\n`;
 
   const handleDownloadTemplate = () => {
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
@@ -156,22 +169,26 @@ function AdminPanel({ token, user, onLogout }) {
 
   const handleSaveUser = async (id) => {
     try {
+      // Transform role to is_admin for backend compatibility
+      const userData = {
+        ...editUserData,
+        is_admin: editUserData.is_admin || false // Preserve existing admin status
+      };
+      delete userData.role; // Remove role field as backend expects is_admin
+      
       const res = await fetch(`http://localhost:5000/users/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editUserData),
+        body: JSON.stringify(userData),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update user');
       setUserMsg('User updated successfully!');
       // Refresh user list
-      const usersRes = await fetch('http://localhost:5000/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(await usersRes.json());
+      await fetchUsers();
       setEditUserId(null);
     } catch (err) {
       setUserMsg(err.message);
@@ -188,163 +205,458 @@ function AdminPanel({ token, user, onLogout }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to delete user');
       setUserMsg('User deleted successfully!');
-      setUsers(users.filter(u => u.id !== id));
+      await fetchUsers();
     } catch (err) {
       setUserMsg(err.message);
     }
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: '2rem auto', padding: '2rem', background: '#f8fafc', borderRadius: 18, boxShadow: '0 4px 32px rgba(0,0,0,0.07)', fontFamily: 'Inter, Arial, sans-serif' }}>
-      {user.role !== 'admin' ? (
-        <div style={{ color: '#b91c1c', fontWeight: 600, fontSize: 20, textAlign: 'center', padding: '2rem' }}>Access denied. Admins only.</div>
+    <DashboardLayout
+      title="Admin Panel"
+      user={user}
+      onLogout={onLogout}
+      onProfileClick={onProfileClick}
+    >
+      {!user.is_admin ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          background: 'rgba(15, 23, 42, 0.8)',
+          borderRadius: '20px',
+          border: '1px solid rgba(148, 163, 184, 0.1)',
+          backdropFilter: 'blur(10px)'
+        }}>
+          <div style={{
+            color: '#ef4444',
+            fontSize: '1.25rem',
+            fontWeight: '500'
+          }}>
+            Access denied. Admins only.
+          </div>
+        </div>
       ) : (
-        <>
-          <h2 style={{ marginTop: 0, fontSize: 32, fontWeight: 700, letterSpacing: -1, color: '#22223b' }}>Audit Logs</h2>
-          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '1.5rem', marginBottom: '2.5rem' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Audit Logs Section */}
+          <div className="card">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                color: 'white'
+              }}>
+                📋
+              </div>
+              <h2 style={{
+                color: '#f8fafc',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                margin: 0
+              }}>
+                Audit Logs
+              </h2>
+            </div>
+            <div className="table-container">
+              <table className="table">
                 <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left' }}>ID</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left' }}>User ID</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left' }}>Action</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left' }}>Created At</th>
+                  <tr>
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Action</th>
+                    <th>Created At</th>
                   </tr>
                 </thead>
                 <tbody>
                   {logs.map(log => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '0.6rem 1rem' }}>{log.id}</td>
-                      <td style={{ padding: '0.6rem 1rem' }}>{log.user_id}</td>
-                      <td style={{ padding: '0.6rem 1rem' }}>{log.action}</td>
-                      <td style={{ padding: '0.6rem 1rem' }}>{new Date(log.created_at).toLocaleString()}</td>
+                    <tr key={log.id}>
+                      <td style={{ fontWeight: '600', color: '#3b82f6' }}>#{log.id}</td>
+                      <td>{log.user_id}</td>
+                      <td>
+                        <span style={{
+                          padding: '0.25rem 0.75rem',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          color: '#60a5fa',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td style={{ color: '#94a3b8' }}>{new Date(log.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-          <h2 style={{ marginTop: '2.5rem', fontSize: 28, fontWeight: 700, letterSpacing: -0.5, color: '#22223b' }}>User Management</h2>
-          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '1.5rem', marginBottom: '2.5rem' }}>
-            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <label style={{ fontWeight: 600, fontSize: 16 }}>Import Users from CSV:</label>
-              <input type="file" accept=".csv" onChange={handleImportCSV} disabled={importing} style={{ marginLeft: 0, fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.3rem 0.7rem', background: '#f8fafc' }} />
-              <button type="button" onClick={handleDownloadTemplate} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0.4rem 1.1rem', fontWeight: 600, cursor: 'pointer', fontSize: 15, boxShadow: '0 1px 4px rgba(37,99,235,0.07)' }}>Download Template</button>
-              {importing && <span style={{ color: '#2563eb', fontWeight: 500 }}>Importing...</span>}
+
+          {/* User Management Section */}
+          <div className="card">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                color: 'white'
+              }}>
+                👥
+              </div>
+              <h2 style={{
+                color: '#f8fafc',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                margin: 0
+              }}>
+                User Management
+              </h2>
             </div>
-            {importMsg && <p style={{ color: importMsg.includes('completed') ? '#059669' : '#b91c1c', margin: 0, fontWeight: 500 }}>{importMsg}</p>}
-            {importResult && (
-              <div style={{ marginTop: 8, fontSize: 15 }}>
-                <b>Imported:</b> {importResult.imported.length}<br />
-                <b>Errors:</b> {importResult.errors.length}
-                {importResult.errors.length > 0 && (
-                  <ul style={{ color: '#b91c1c', marginTop: 4, paddingLeft: 18 }}>
-                    {importResult.errors.map((err, i) => (
-                      <li key={i}>{err.email}: {err.error}</li>
-                    ))}
-                  </ul>
+            
+            {/* Import Section */}
+            <div style={{
+              padding: '1.5rem',
+              background: 'rgba(30, 41, 59, 0.5)',
+              borderRadius: '12px',
+              marginBottom: '1.5rem',
+              border: '1px solid rgba(148, 163, 184, 0.1)'
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <label style={{
+                      color: '#94a3b8',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      minWidth: '100px'
+                    }}>
+                      Import Users:
+                    </label>
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={handleImportCSV} 
+                      disabled={importing}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 1rem',
+                        background: 'rgba(30, 41, 59, 0.8)',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        borderRadius: '12px',
+                        color: '#f8fafc',
+                        fontSize: '0.875rem',
+                        transition: 'all 0.3s ease'
+                      }}
+                    />
+                    <button 
+                      onClick={handleDownloadTemplate}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        borderRadius: '12px',
+                        color: '#3b82f6',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <FaDownload style={{ marginRight: '0.5rem' }} />
+                      Download Template
+                    </button>
+                  </div>
+                  {importMsg && (
+                    <div style={{
+                      padding: '0.75rem 1rem',
+                      background: importMsg.includes('completed') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      color: importMsg.includes('completed') ? '#22c55e' : '#ef4444',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500'
+                    }}>
+                      {importMsg}
+                    </div>
+                  )}
+                  {importing && (
+                    <div style={{
+                      padding: '0.75rem 1rem',
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      color: '#60a5fa',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500'
+                    }}>
+                      Importing users... Please wait.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Create User Section */}
+            <div style={{
+              padding: '1.5rem',
+              background: 'rgba(30, 41, 59, 0.5)',
+              borderRadius: '12px',
+              marginBottom: '1.5rem',
+              border: '1px solid rgba(148, 163, 184, 0.1)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <FaPlus />
+                  Add New User
+                </button>
+                <button
+                  onClick={fetchUsers}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  disabled={refreshing}
+                >
+                  <FaDownload />
+                  Refresh
+                </button>
+                {refreshing && (
+                  <span style={{ color: '#3b82f6', fontWeight: '500' }}>Refreshing...</span>
                 )}
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-            <button onClick={() => setShowAddModal(true)} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.4rem', fontWeight: 600, fontSize: 15, boxShadow: '0 1px 4px rgba(37,99,235,0.07)', cursor: 'pointer' }}>Add User</button>
-          </div>
-          {showAddModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-              <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 4px 32px rgba(0,0,0,0.10)', padding: '2rem 2.5rem', minWidth: 340, maxWidth: 400, width: '100%', position: 'relative' }}>
-                <button onClick={() => setShowAddModal(false)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, color: '#888', cursor: 'pointer' }}>&times;</button>
-                <h3 style={{ margin: 0, marginBottom: 18, fontWeight: 700, fontSize: 22, color: '#22223b' }}>Add User</h3>
-                <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <input type="text" placeholder="Name" value={newUser.name} onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} required style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }} />
-                  <input type="email" placeholder="Email" value={newUser.email} onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} required style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }} />
-                  <input type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))} required style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }} />
-                  <select value={newUser.department} onChange={e => setNewUser(u => ({ ...u, department: e.target.value }))} style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }}>
-                    {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
-                  </select>
-                  <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))} style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }}>
-                    {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
-                  </select>
-                  <input type="text" placeholder="Employee Grade" value={newUser.employee_grade} onChange={e => setNewUser(u => ({ ...u, employee_grade: e.target.value }))} style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }} />
-                  <input type="text" placeholder="Designation" value={newUser.designation} onChange={e => setNewUser(u => ({ ...u, designation: e.target.value }))} style={{ fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.6rem 1rem', background: '#fff' }} />
-                  <button type="submit" style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0.7rem 1.2rem', fontWeight: 600, cursor: 'pointer', fontSize: 15, boxShadow: '0 1px 4px rgba(37,99,235,0.07)' }}>Add User</button>
-                </form>
-                {createMsg && <p style={{ color: createMsg.includes('success') ? '#059669' : '#b91c1c', fontWeight: 500, marginTop: 10 }}>{createMsg}</p>}
-              </div>
+              {createMsg && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: createMsg.includes('successfully') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  color: createMsg.includes('successfully') ? '#22c55e' : '#ef4444',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}>
+                  {createMsg}
+                </div>
+              )}
             </div>
-          )}
-          {userMsg && <p style={{ color: userMsg.includes('admin') ? '#059669' : '#b91c1c', fontWeight: 500 }}>{userMsg}</p>}
-          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', padding: '1.5rem', marginBottom: '2.5rem', maxWidth: 1100, marginLeft: 'auto', marginRight: 'auto' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', minWidth: 900, borderCollapse: 'separate', borderSpacing: 0, fontSize: 15 }}>
-                <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
-                  <tr style={{ color: '#22223b', fontWeight: 700, borderBottom: '1.5px solid #e5e7eb' }}>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>ID</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Name</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Email</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Role</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Department</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Grade</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'left', background: '#f8fafc' }}>Designation</th>
-                    <th style={{ padding: '0.7rem 1rem', textAlign: 'center', background: '#f8fafc' }}>Actions</th>
+
+            {/* Users Table */}
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Grade</th>
+                    <th>Designation</th>
+                    <th>Role</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', background: editUserId === u.id ? '#f1f5f9' : '#fff', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '0.6rem 1rem' }}>{u.id}</td>
-                      {editUserId === u.id ? (
-                        <>
-                          <td style={{ padding: '0.6rem 1rem' }}><input value={editUserData.name} onChange={e => setEditUserData(d => ({ ...d, name: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f8fafb' }} /></td>
-                          <td style={{ padding: '0.6rem 1rem' }}><input value={editUserData.email} onChange={e => setEditUserData(d => ({ ...d, email: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f9fafb' }} /></td>
-                          <td style={{ padding: '0.6rem 1rem' }}>
-                            <select value={editUserData.role} onChange={e => setEditUserData(d => ({ ...d, role: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f9fafb' }}>
-                              {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '0.6rem 1rem' }}>
-                            <select value={editUserData.department} onChange={e => setEditUserData(d => ({ ...d, department: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f9fafb' }}>
-                              {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '0.6rem 1rem' }}><input value={editUserData.employee_grade || ''} onChange={e => setEditUserData(d => ({ ...d, employee_grade: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f9fafb' }} /></td>
-                          <td style={{ padding: '0.6rem 1rem' }}><input value={editUserData.designation || ''} onChange={e => setEditUserData(d => ({ ...d, designation: e.target.value }))} style={{ width: '100%', borderRadius: 6, border: '1px solid #e5e7eb', padding: '0.4rem 0.7rem', background: '#f9fafb' }} /></td>
-                          <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: 8, justifyContent: 'center' }}>
-                            <button onClick={() => handleSaveUser(u.id)} title="Save" style={{ background: '#22c55e', color: '#fff', border: 'none', borderRadius: 6, padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✔</button>
-                            <button onClick={() => setEditUserId(null)} title="Cancel" style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✖</button>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.name}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.email}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.role}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.department}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.employee_grade || '-'}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{u.designation || '-'}</td>
-                          <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: 8, justifyContent: 'center' }}>
-                            <button onClick={() => { setEditUserId(u.id); setEditUserData(u); }} title="Edit" style={{ background: 'none', color: '#2563eb', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaEdit /></button>
-                            {u.role !== 'admin' && u.id !== user.id ? (
-                              <button onClick={() => makeAdmin(u.id)} title="Make Admin" style={{ background: 'none', color: '#6366f1', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaUserShield /></button>
-                            ) : (
-                              <span style={{ color: '#bbb', fontSize: 18, fontWeight: 500, minWidth: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</span>
-                            )}
-                            {u.id !== user.id && (
-                              <button onClick={() => handleDeleteUser(u.id)} title="Delete" style={{ background: 'none', color: '#ef4444', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTrash /></button>
-                            )}
-                          </td>
-                        </>
-                      )}
+                  {users.map(user => (
+                    <tr key={user.id}>
+                      <td style={{ fontWeight: '600', color: '#3b82f6' }}>#{user.id}</td>
+                      <td style={{ color: '#f8fafc', fontWeight: '500' }}>{user.name}</td>
+                      <td style={{ color: '#94a3b8' }}>{user.email}</td>
+                      <td style={{ color: '#f8fafc' }}>{user.department}</td>
+                      <td style={{ color: '#f8fafc' }}>G{user.grade}</td>
+                      <td style={{ color: '#f8fafc' }}>{user.designation}</td>
+                      <td>
+                        <span style={{
+                          padding: '0.25rem 0.75rem',
+                          background: user.is_admin ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                          color: user.is_admin ? '#ef4444' : '#22c55e',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}>
+                          {user.is_admin ? 'Admin' : 'User'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => {
+                              setEditUserId(user.id);
+                              setEditUserData(user);
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              borderRadius: '8px',
+                              color: '#3b82f6',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            style={{
+                              padding: '0.5rem',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              borderRadius: '8px',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add User</h3>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <input 
+                  type="text" 
+                  placeholder="Name" 
+                  value={newUser.name} 
+                  onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} 
+                  required 
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <input 
+                  type="email" 
+                  placeholder="Email" 
+                  value={newUser.email} 
+                  onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} 
+                  required 
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  value={newUser.password} 
+                  onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))} 
+                  required 
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <select 
+                  value={newUser.department} 
+                  onChange={e => setNewUser(u => ({ ...u, department: e.target.value }))}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                </select>
+                <input 
+                  type="text" 
+                  placeholder="Employee Grade" 
+                  value={newUser.employee_grade} 
+                  onChange={e => setNewUser(u => ({ ...u, employee_grade: e.target.value }))}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <input 
+                  type="text" 
+                  placeholder="Designation" 
+                  value={newUser.designation} 
+                  onChange={e => setNewUser(u => ({ ...u, designation: e.target.value }))}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <button 
+                  type="submit"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Add User
+                </button>
+              </form>
+              {createMsg && (
+                <div className={`mt-3 text-sm ${createMsg.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                  {createMsg}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }
 

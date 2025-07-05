@@ -1,10 +1,14 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('C:/Users/rajat/OneDrive/Desktop/Hackathon/backend/firebase-service-account.json');
 
-if (!admin.apps.length) {
+// Initialize Firebase Admin SDK
+// Note: In production, you should use environment variables for the service account
+try {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.applicationDefault(),
+    // Add your Firebase project configuration here if needed
   });
+} catch (error) {
+  console.log('Firebase Admin already initialized or failed to initialize:', error.message);
 }
 
 module.exports = admin; 
