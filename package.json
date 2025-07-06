@@ -1,0 +1,14 @@
+{
+  "name": "finops-clean",
+  "version": "1.0.0",
+  "description": "Revenue Management System",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "install": "cd backend && npm install",
+    "build": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
