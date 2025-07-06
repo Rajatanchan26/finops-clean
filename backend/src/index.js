@@ -498,6 +498,11 @@ app.post('/sync-user', async (req, res) => {
   }
 
   try {
+    // Check if Firebase Admin is properly initialized
+    if (!admin.apps.length) {
+      return res.status(500).json({ message: 'Firebase Admin not initialized. Please check environment variables.' });
+    }
+
     // Verify Firebase token
     const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
     const firebase_uid = decodedToken.uid;
@@ -590,7 +595,7 @@ app.post('/login', async (req, res) => {
     // For testing, skip Firebase verification and use mock data
     let user;
     
-    if (pool) {
+    if (pool && admin.apps.length) {
       // Try database first
       try {
         const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
@@ -658,6 +663,11 @@ app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) =>
   try {
     if (!pool) {
       return res.status(500).json({ message: 'Database not available' });
+    }
+    
+    // Check if Firebase Admin is properly initialized
+    if (!admin.apps.length) {
+      return res.status(500).json({ message: 'Firebase Admin not initialized. Please check environment variables.' });
     }
     
     // Get all users from Firebase
