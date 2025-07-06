@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import config from './config';
 
 const CATEGORIES = [
   'Travel',
@@ -15,26 +16,33 @@ function Transactions({ token, user, onLogout }) {
   const [justification, setJustification] = useState('');
   const [date, setDate] = useState('');
   const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      const res = await fetch('http://localhost:5000/transactions', {
-        headers: { Authorization: `Bearer ${token}` },
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('Failed to fetch transactions');
       const data = await res.json();
       setTransactions(data);
-    };
-    fetchTransactions();
-    // Poll every 10 seconds for real-time updates
-    const interval = setInterval(fetchTransactions, 10000);
-    return () => clearInterval(interval);
-  }, [token]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg('');
     try {
-      const res = await fetch('http://localhost:5000/transactions', {
+      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,25 +63,49 @@ function Transactions({ token, user, onLogout }) {
       setCategory(CATEGORIES[0]);
       setJustification('');
       setDate('');
+      fetchTransactions();
     } catch (err) {
       setMsg(err.message);
     }
   };
 
-  const handleStatus = async (id, status) => {
-    setMsg('');
+  const updateTransactionStatus = async (id, status) => {
     try {
-      const res = await fetch(`http://localhost:5000/transactions/${id}/status`, {
-        method: 'PATCH',
-        headers: {
+      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
+        method: 'PUT',
+        headers: { 
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ id, status })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to update status');
-      setMsg('Status updated!');
+      if (!res.ok) throw new Error('Failed to update transaction');
+      fetchTransactions();
+    } catch (err) {
+      setMsg(err.message);
+    }
+  };
+
+  const approveTransaction = async (id) => {
+    await updateTransactionStatus(id, 'Approved');
+  };
+
+  const rejectTransaction = async (id) => {
+    await updateTransactionStatus(id, 'Rejected');
+  };
+
+  const updateTransactionStatusById = async (id, status) => {
+    try {
+      const res = await fetch(`${config.API_BASE_URL}/transactions/${id}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('Failed to update transaction status');
+      fetchTransactions();
     } catch (err) {
       setMsg(err.message);
     }
@@ -204,7 +236,7 @@ function Transactions({ token, user, onLogout }) {
                     {cat}
                   </option>
                 ))}
-          </select>
+              </select>
             </div>
 
             <div>
@@ -305,7 +337,7 @@ function Transactions({ token, user, onLogout }) {
             >
               Submit Transaction
             </button>
-        </form>
+          </form>
 
           {msg && (
             <div style={{
@@ -368,7 +400,7 @@ function Transactions({ token, user, onLogout }) {
                       {tx.status === 'Pending' && (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
-                            onClick={() => handleStatus(tx.id, 'Approved')}
+                            onClick={() => updateTransactionStatusById(tx.id, 'Approved')}
                             style={{
                               background: 'rgba(34, 197, 94, 0.1)',
                               border: '1px solid rgba(34, 197, 94, 0.2)',
@@ -392,7 +424,7 @@ function Transactions({ token, user, onLogout }) {
                             Approve
                           </button>
                           <button
-                            onClick={() => handleStatus(tx.id, 'Rejected')}
+                            onClick={() => updateTransactionStatusById(tx.id, 'Rejected')}
                             style={{
                               background: 'rgba(239, 68, 68, 0.1)',
                               border: '1px solid rgba(239, 68, 68, 0.2)',

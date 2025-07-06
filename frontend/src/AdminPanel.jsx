@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaEdit, FaTrash, FaUserShield, FaDownload, FaPlus } from 'react-icons/fa';
 import DashboardLayout from './components/DashboardLayout';
+import config from './config';
 
 const DEPARTMENTS = [
   'Finance',
@@ -30,16 +31,24 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const [editUserData, setEditUserData] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [importStatus, setImportStatus] = useState('');
 
   // Fetch audit logs
   useEffect(() => {
     if (user.role !== 'admin') return;
     const fetchLogs = async () => {
-      const res = await fetch('http://localhost:5000/audit-logs', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setLogs(data);
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/audit-logs`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setLogs(data);
+      } catch (err) {
+        setError(err.message);
+      }
     };
     fetchLogs();
     const interval = setInterval(fetchLogs, 10000);
@@ -54,18 +63,23 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
 
     const fetchUsers = async () => {
     setRefreshing(true);
-      const res = await fetch('http://localhost:5000/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUsers(data);
-    setRefreshing(false);
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setRefreshing(false);
+      }
     };
 
   const makeAdmin = async (id) => {
     setUserMsg('');
     try {
-      const res = await fetch(`http://localhost:5000/users/${id}/role`, {
+      const res = await fetch(`${config.API_BASE_URL}/users/${id}/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +107,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       };
       delete userData.role;
       delete userData.employee_grade;
-      const res = await fetch('http://localhost:5000/users', {
+      const res = await fetch(`${config.API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +138,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     const formData = new FormData();
     formData.append('csv', file);
     try {
-      const res = await fetch('http://localhost:5000/users/import', {
+      const res = await fetch(`${config.API_BASE_URL}/users/import`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -176,7 +190,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       };
       delete userData.role; // Remove role field as backend expects is_admin
       
-      const res = await fetch(`http://localhost:5000/users/${id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/users/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +212,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/users/${id}`, {
+      const res = await fetch(`${config.API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
