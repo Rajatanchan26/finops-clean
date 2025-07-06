@@ -24,9 +24,9 @@ function LoginPage({ setUser, setToken }) {
       // 2. Get Firebase ID token
       const firebaseToken = await userCredential.user.getIdToken();
       
-      // 3. Call backend /login with Firebase token
-      const apiBaseUrl = getApiBaseUrl();
-      console.log('Login attempt - API Base URL:', apiBaseUrl);
+      // 3. Call backend /login with Firebase token - HARDCODED FOR TESTING
+      const apiBaseUrl = 'https://finops-clean-production.up.railway.app';
+      console.log('HARDCODED Login attempt - API Base URL:', apiBaseUrl);
       
       const res = await fetch(`${apiBaseUrl}/login`, {
         method: 'POST',

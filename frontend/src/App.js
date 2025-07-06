@@ -130,8 +130,9 @@ function App() {
     const checkAuth = async () => {
       if (token) {
         try {
-          const apiBaseUrl = getApiBaseUrl();
-          console.log('Auth check - API Base URL:', apiBaseUrl);
+          // HARDCODED FOR TESTING
+          const apiBaseUrl = 'https://finops-clean-production.up.railway.app';
+          console.log('HARDCODED Auth check - API Base URL:', apiBaseUrl);
           
           const res = await fetch(`${apiBaseUrl}/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
