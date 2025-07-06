@@ -16,6 +16,10 @@ function LoginPage({ setUser, setToken }) {
     e.preventDefault();
     setError('');
     setLoading(true);
+    
+    // TEST ALERT - If you see this, the new code is deployed
+    alert('NEW CODE DEPLOYED! Testing Railway connection...');
+    
     try {
       // 1. Firebase Auth
       const auth = getAuth();
