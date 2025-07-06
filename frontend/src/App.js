@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import ProfileModal from './ProfileModal';
 import './App.css';
 import './components/DashboardComponents.css';
-import config from './config';
+import { getApiBaseUrl } from './utils/api';
 
 import G1Dashboard from './G1Dashboard';
 import G2Dashboard from './G2Dashboard';
@@ -130,7 +130,10 @@ function App() {
     const checkAuth = async () => {
       if (token) {
         try {
-          const res = await fetch(`${config.API_BASE_URL}/me`, {
+          const apiBaseUrl = getApiBaseUrl();
+          console.log('Auth check - API Base URL:', apiBaseUrl);
+          
+          const res = await fetch(`${apiBaseUrl}/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
