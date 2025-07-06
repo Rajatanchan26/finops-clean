@@ -26,9 +26,13 @@ function LoginPage({ setUser, setToken }) {
       
       // 3. Call backend /login with Firebase token - HARDCODED FOR TESTING
       const apiBaseUrl = 'https://finops-clean-production.up.railway.app';
+      const timestamp = Date.now();
+      const uniqueId = Math.random().toString(36).substring(7);
       console.log('HARDCODED Login attempt - API Base URL:', apiBaseUrl);
+      console.log('Cache bust timestamp:', timestamp);
+      console.log('Unique ID:', uniqueId);
       
-      const res = await fetch(`${apiBaseUrl}/login`, {
+      const res = await fetch(`${apiBaseUrl}/login?v=${timestamp}&id=${uniqueId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firebaseToken, email }),
