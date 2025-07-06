@@ -2,7 +2,14 @@ import config from '../config';
 
 // Get the API base URL from config
 export const getApiBaseUrl = () => {
-  return config.API_BASE_URL;
+  const url = config.API_BASE_URL;
+  console.log('=== API UTILITY DEBUG ===');
+  console.log('getApiBaseUrl() called');
+  console.log('config object:', config);
+  console.log('config.API_BASE_URL:', config.API_BASE_URL);
+  console.log('Returning URL:', url);
+  console.log('========================');
+  return url;
 };
 
 // Helper function to make API calls

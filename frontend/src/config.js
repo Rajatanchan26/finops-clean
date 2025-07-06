@@ -19,8 +19,9 @@ const config = {
 // Force production environment for now to fix CORS issue
 const environment = 'production'; // process.env.NODE_ENV || 'development';
 
-// Enhanced debug logging
+// Enhanced debug logging with timestamp for cache busting
 console.log('=== CONFIG DEBUG INFO ===');
+console.log('Timestamp:', new Date().toISOString());
 console.log('Environment:', environment);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
