@@ -422,8 +422,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                         transition: 'all 0.2s ease'
                       }}
                   >
-                      <FaDownload style={{ marginRight: '0.5rem' }} />
-                    Download Template
+                    📥 Download Template
                   </button>
                 </div>
                 {importMsg && (
