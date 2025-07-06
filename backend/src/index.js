@@ -22,6 +22,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://finops-clean-hwqdeu3si-rajats-projects-9f45924f.vercel.app',
+    'https://finops-clean-po9r-ln6yzg9ko-rajats-projects-9f45924f.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
