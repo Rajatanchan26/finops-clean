@@ -504,18 +504,25 @@ app.post('/login', async (req, res) => {
         
         const result = await pool.query('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid]);
         user = result.rows[0];
+        console.log('Database lookup result:', user ? 'User found' : 'User not found');
       } catch (dbError) {
-        console.log('Database lookup failed, using mock data');
+        console.log('Database lookup failed, using mock data. Error:', dbError.message);
       }
     }
     
     // If no user from database, use mock data
     if (!user && email) {
+      console.log('Trying mock user lookup for email:', email);
       user = mockUsers.find(u => u.email === email);
+      console.log('Mock user lookup result:', user ? 'User found' : 'User not found');
+      if (user) {
+        console.log('Mock user details:', { id: user.id, name: user.name, email: user.email, grade: user.grade });
+      }
     }
     
     if (!user) {
       console.log('User not found for email:', email);
+      console.log('Available mock users:', mockUsers.map(u => u.email));
       return res.status(401).json({ message: 'User not found in database' });
     }
     
