@@ -520,6 +520,24 @@ app.post('/login', async (req, res) => {
       }
     }
     
+    // Additional fallback: if Firebase auth succeeded but user not in DB, create a mock user
+    if (!user && email && firebaseToken) {
+      console.log('Firebase auth succeeded but user not in DB, creating mock user for:', email);
+      // Create a mock user with a generated ID
+      const mockUser = {
+        id: Date.now(), // Generate a unique ID
+        name: email.split('@')[0], // Use email prefix as name
+        email: email,
+        is_admin: false,
+        grade: 1, // Default to G1
+        department: 'General',
+        designation: 'Employee',
+        firebase_uid: 'mock_' + Date.now()
+      };
+      user = mockUser;
+      console.log('Created mock user:', mockUser);
+    }
+    
     if (!user) {
       console.log('User not found for email:', email);
       console.log('Available mock users:', mockUsers.map(u => u.email));
