@@ -2,7 +2,7 @@ import '../src/firebase';
 import React, { useState } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getApiBaseUrl } from './utils/api';
+import { getApiBaseUrl } from './utils/api'; // Updated for main branch deployment
 
 const DEPARTMENTS = [
   'Finance',
