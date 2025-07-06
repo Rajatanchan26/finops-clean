@@ -41,4 +41,43 @@ export const apiCall = async (endpoint, options = {}) => {
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
+// Firebase-Database sync functions
+export const syncUserWithDatabase = async (firebaseToken, userData = {}) => {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/sync-user`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ firebaseToken, userData }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to sync user');
+  }
+
+  return response.json();
+};
+
+export const syncAllUsers = async () => {
+  const baseUrl = getApiBaseUrl();
+  const headers = getAuthHeaders();
+  
+  const response = await fetch(`${baseUrl}/sync-all-users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to sync all users');
+  }
+
+  return response.json();
 }; 

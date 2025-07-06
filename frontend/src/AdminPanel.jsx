@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaEdit, FaTrash, FaUserShield, FaDownload, FaPlus } from 'react-icons/fa';
 import DashboardLayout from './components/DashboardLayout';
-import { getApiBaseUrl } from './utils/api';
+import { getApiBaseUrl, syncAllUsers } from './utils/api';
 
 const DEPARTMENTS = [
   'Finance',
@@ -35,6 +35,8 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [importStatus, setImportStatus] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
 
   // Fetch audit logs
   useEffect(() => {
@@ -179,6 +181,20 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleSyncUsers = async () => {
+    setSyncMsg('');
+    setSyncing(true);
+    try {
+      const result = await syncAllUsers();
+      setSyncMsg(`Sync completed: ${result.results.created} created, ${result.results.updated} updated, ${result.results.errors} errors`);
+      await fetchUsers(); // Refresh the user list
+    } catch (err) {
+      setSyncMsg(err.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSaveUser = async (id) => {
@@ -496,6 +512,27 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                   <FaDownload />
                   Refresh
                 </button>
+                <button
+                  onClick={handleSyncUsers}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  disabled={syncing}
+                >
+                  <FaUserShield />
+                  {syncing ? 'Syncing...' : 'Sync Firebase Users'}
+                </button>
                 {refreshing && (
                   <span style={{ color: '#3b82f6', fontWeight: '500' }}>Refreshing...</span>
                 )}
@@ -510,6 +547,18 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                   fontWeight: '500'
                 }}>
                   {createMsg}
+                </div>
+              )}
+              {syncMsg && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: syncMsg.includes('completed') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  color: syncMsg.includes('completed') ? '#22c55e' : '#ef4444',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}>
+                  {syncMsg}
                 </div>
               )}
               </div>

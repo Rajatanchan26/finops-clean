@@ -2,7 +2,7 @@ import '../src/firebase';
 import React, { useState } from 'react';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getApiBaseUrl } from './utils/api';
+import { getApiBaseUrl, syncUserWithDatabase } from './utils/api';
 
 function LoginPage({ setUser, setToken }) {
   const [email, setEmail] = useState('');
@@ -28,26 +28,16 @@ function LoginPage({ setUser, setToken }) {
       // 2. Get Firebase ID token
       const firebaseToken = await userCredential.user.getIdToken();
       
-      // 3. Call backend /login with Firebase token - HARDCODED FOR TESTING
-      const apiBaseUrl = 'https://finops-clean-production.up.railway.app';
-      const timestamp = Date.now();
-      const uniqueId = Math.random().toString(36).substring(7);
-      console.log('HARDCODED Login attempt - API Base URL:', apiBaseUrl);
-      console.log('Cache bust timestamp:', timestamp);
-      console.log('Unique ID:', uniqueId);
-      
-      const res = await fetch(`${apiBaseUrl}/login?v=${timestamp}&id=${uniqueId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firebaseToken, email }),
+      // 3. Sync user with database using Firebase token
+      console.log('Syncing user with database...');
+      const syncData = await syncUserWithDatabase(firebaseToken, {
+        name: userCredential.user.displayName || email.split('@')[0],
+        email: email
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Backend login failed');
-      }
-      const data = await res.json();
-      setUser(data.user);
-      setToken(data.token);
+      
+      console.log('Sync successful:', syncData);
+      setUser(syncData.user);
+      setToken(syncData.token);
       // Let the App component handle the redirect based on user role
       navigate('/');
     } catch (err) {
