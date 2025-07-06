@@ -2,6 +2,7 @@ import '../src/firebase';
 import React, { useState } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import config from './config';
 
 const DEPARTMENTS = [
   'Finance',
@@ -11,7 +12,7 @@ const DEPARTMENTS = [
   'Data&AI',
 ];
 
-function SignUpPage() {
+function SignUpPage({ setUser, setToken }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,21 +28,27 @@ function SignUpPage() {
     setSuccess('');
     setLoading(true);
     try {
-      // 1. Create user in Firebase Auth
+      // 1. Firebase Auth
       const auth = getAuth();
-      await createUserWithEmailAndPassword(auth, email, password);
-      // 2. Register user in backend (always as 'user')
-      const res = await fetch('http://localhost:5000/register', {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // 2. Get Firebase ID token
+      const firebaseToken = await userCredential.user.getIdToken();
+      
+      // 3. Call backend /register with Firebase token
+      const res = await fetch(`${config.API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role: 'user', department }),
+        body: JSON.stringify({ firebaseToken, email }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || 'Backend registration failed');
       }
-      setSuccess('Registration successful! You can now log in.');
-      setTimeout(() => navigate('/login'), 1500);
+      const data = await res.json();
+      setUser(data.user);
+      setToken(data.token);
+      navigate('/');
     } catch (err) {
       setError(err.message);
     } finally {

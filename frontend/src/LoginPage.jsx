@@ -2,6 +2,7 @@ import '../src/firebase';
 import React, { useState } from 'react';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import config from './config';
 
 function LoginPage({ setUser, setToken }) {
   const [email, setEmail] = useState('');
@@ -24,7 +25,7 @@ function LoginPage({ setUser, setToken }) {
       const firebaseToken = await userCredential.user.getIdToken();
       
       // 3. Call backend /login with Firebase token
-      const res = await fetch('http://localhost:5000/login', {
+      const res = await fetch(`${config.API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firebaseToken, email }),

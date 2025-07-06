@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import ProfileModal from './ProfileModal';
 import './App.css';
 import './components/DashboardComponents.css';
-import { jwtDecode } from 'jwt-decode';
+import config from './config';
 
 import G1Dashboard from './G1Dashboard';
 import G2Dashboard from './G2Dashboard';
@@ -28,13 +28,6 @@ function RedirectIfAuth({ token, user, children }) {
   }
   
   return <Navigate to="/login" replace />;
-}
-
-function fetchUserProfile(token) {
-  return fetch('http://localhost:5000/me', {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  }).then(res => res.ok ? res.json() : null);
 }
 
 function AppContent({ user, token, onLogout, setUser, setToken, profileOpen, setProfileOpen }) {
@@ -129,39 +122,39 @@ function AppContent({ user, token, onLogout, setUser, setToken, profileOpen, set
 
 function App() {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('jwt') || '');
+  const [token, setToken] = useState(localStorage.getItem('token'));
   const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Save token to localStorage
   useEffect(() => {
-    if (token) localStorage.setItem('jwt', token);
-    else localStorage.removeItem('jwt');
-  }, [token]);
-
-  // Fetch user profile from backend on token change
-  useEffect(() => {
-    if (!token) {
-      setUser(null);
+    const checkAuth = async () => {
+      if (token) {
+        try {
+          const res = await fetch(`${config.API_BASE_URL}/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const userData = await res.json();
+            setUser(userData);
+          } else {
+            localStorage.removeItem('token');
+            setToken(null);
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('token');
+          setToken(null);
+        }
+      }
       setLoading(false);
-      return;
-    }
-    setLoading(true);
-    fetchUserProfile(token)
-      .then(data => {
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setUser(null);
-        setLoading(false);
-      });
+    };
+    checkAuth();
   }, [token]);
 
   const handleLogout = () => {
     setUser(null);
     setToken('');
-    localStorage.removeItem('jwt');
+    localStorage.removeItem('token');
   };
 
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
