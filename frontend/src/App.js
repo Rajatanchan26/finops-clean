@@ -16,6 +16,8 @@ import G1Dashboard from './G1Dashboard';
 import G2Dashboard from './G2Dashboard';
 import G3Dashboard from './G3Dashboard';
 
+// CACHE BUST: Force Vercel to serve fresh content
+
 function RequireAuth({ token, children }) {
   return token ? children : <Navigate to="/login" replace />;
 }
