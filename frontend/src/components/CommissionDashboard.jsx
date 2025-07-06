@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import config from '../config';
 
 function CommissionDashboard({ scope = 'self', user, token }) {
   const [commissionData, setCommissionData] = useState(null);
@@ -13,7 +14,7 @@ function CommissionDashboard({ scope = 'self', user, token }) {
 
   const fetchCommissionData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/commission?scope=${scope}&range=${timeRange}`, {
+      const response = await fetch(`${config.API_BASE_URL}/commission?scope=${scope}&range=${timeRange}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -35,7 +36,7 @@ function CommissionDashboard({ scope = 'self', user, token }) {
   const handleExport = async (format) => {
     setExporting(true);
     try {
-      const response = await fetch(`http://localhost:5000/export/commission?format=${format}&scope=${scope}&range=${timeRange}`, {
+      const response = await fetch(`${config.API_BASE_URL}/export/commission?format=${format}&scope=${scope}&range=${timeRange}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

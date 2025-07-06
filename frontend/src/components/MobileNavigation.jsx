@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import config from '../config';
 
 function MobileNavigation({ user, onLogout, onProfileClick }) {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ function MobileNavigation({ user, onLogout, onProfileClick }) {
     // WebSocket connection for notifications
     const token = localStorage.getItem('jwt');
     if (token) {
-      const ws = new WebSocket(`ws://localhost:5000?token=${token}`);
+      const ws = new WebSocket(`${config.API_BASE_URL.replace('http', 'ws')}?token=${token}`);
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import config from '../config';
 import './TopKPICards.css';
 
 function TopKPICards({ scope = 'self', user, token }) {
@@ -11,7 +12,7 @@ function TopKPICards({ scope = 'self', user, token }) {
 
   const fetchKPIs = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/kpi?scope=${scope}`, {
+      const response = await fetch(`${config.API_BASE_URL}/kpi?scope=${scope}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

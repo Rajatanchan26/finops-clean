@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import config from '../config';
 import './InvoiceForm.css';
 
 function InvoiceForm({ scope = 'self', user, token, onInvoiceCreated }) {
@@ -17,7 +18,7 @@ function InvoiceForm({ scope = 'self', user, token, onInvoiceCreated }) {
     setMessage('Submitting invoice...');
     
     try {
-      const response = await fetch('http://localhost:5000/invoices', {
+      const response = await fetch(`${config.API_BASE_URL}/invoices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
