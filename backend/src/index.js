@@ -19,12 +19,28 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://finops-clean-hwqdeu3si-rajats-projects-9f45924f.vercel.app',
-    'https://finops-clean-po9r-ln6yzg9ko-rajats-projects-9f45924f.vercel.app',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://finops-clean-hwqdeu3si-rajats-projects-9f45924f.vercel.app',
+      'https://finops-clean-po9r-ln6yzg9ko-rajats-projects-9f45924f.vercel.app',
+      'https://finops-clean-po9r-git-clean-main-rajats-projects-9f45924f.vercel.app'
+    ];
+    
+    // Allow any Vercel domain for this project
+    const vercelPattern = /^https:\/\/finops-clean-.*\.vercel\.app$/;
+    
+    if (allowedOrigins.includes(origin) || 
+        vercelPattern.test(origin) || 
+        origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
