@@ -6,7 +6,6 @@ import Navbar from './Navbar';
 import ProfileModal from './ProfileModal';
 import './App.css';
 import './components/DashboardComponents.css';
-import { getApiBaseUrl } from './utils/api';
 
 import G1Dashboard from './G1Dashboard';
 import G2Dashboard from './G2Dashboard';
