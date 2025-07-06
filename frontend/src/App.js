@@ -126,6 +126,23 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Force reload mechanism
+  useEffect(() => {
+    console.log('=== APP COMPONENT DEBUG ===');
+    console.log('App component mounted at:', new Date().toISOString());
+    console.log('Current deployment version:', 'FORCE_RELOAD_' + Date.now());
+    console.log('========================');
+    
+    // Force reload if we detect old cached version
+    const lastReload = localStorage.getItem('lastReload');
+    const currentTime = Date.now();
+    if (!lastReload || (currentTime - parseInt(lastReload)) > 300000) { // 5 minutes
+      localStorage.setItem('lastReload', currentTime.toString());
+      console.log('Forcing page reload to clear cache...');
+      window.location.reload();
+    }
+  }, []);
+
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
