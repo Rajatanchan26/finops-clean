@@ -479,6 +479,102 @@ app.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /sync-user - Sync Firebase user with database
+app.post('/sync-user', async (req, res) => {
+  const { firebaseToken, userData } = req.body;
+  
+  console.log('Sync user attempt - firebaseToken length:', firebaseToken ? firebaseToken.length : 'undefined');
+  console.log('Sync user data:', userData);
+  
+  if (!firebaseToken) {
+    return res.status(400).json({ message: 'Firebase token required' });
+  }
+
+  try {
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    const firebase_uid = decodedToken.uid;
+    const email = decodedToken.email;
+    
+    console.log('Firebase token verified, UID:', firebase_uid, 'Email:', email);
+    
+    if (!pool) {
+      return res.status(500).json({ message: 'Database not available' });
+    }
+    
+    // Check if user already exists in database
+    let result = await pool.query('SELECT * FROM users WHERE firebase_uid = $1 OR email = $2', [firebase_uid, email]);
+    let user = result.rows[0];
+    
+    if (user) {
+      // Update existing user with latest Firebase data
+      const updateResult = await pool.query(`
+        UPDATE users 
+        SET name = $1, email = $2, firebase_uid = $3, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $4
+        RETURNING *
+      `, [
+        userData?.name || user.name,
+        email,
+        firebase_uid,
+        user.id
+      ]);
+      
+      user = updateResult.rows[0];
+      console.log('User updated in database:', user.email);
+    } else {
+      // Create new user in database
+      const insertResult = await pool.query(`
+        INSERT INTO users (name, email, role, password, department, employee_grade, designation, firebase_uid)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [
+        userData?.name || email.split('@')[0],
+        email,
+        userData?.role || 'user',
+        'firebase_auth', // Placeholder since we use Firebase auth
+        userData?.department || 'General',
+        userData?.employee_grade || 'G1',
+        userData?.designation || 'Employee',
+        firebase_uid
+      ]);
+      
+      user = insertResult.rows[0];
+      console.log('New user created in database:', user.email);
+    }
+    
+    // Generate backend JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        is_admin: user.role === 'admin', 
+        grade: parseInt(user.employee_grade?.replace('G', '') || '1'), 
+        department: user.department 
+      },
+      process.env.JWT_SECRET || 'fallback-secret-key',
+      { expiresIn: '1h' }
+    );
+    
+    res.json({ 
+      success: true,
+      message: user.id ? 'User synced successfully' : 'New user created',
+      token, 
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        is_admin: user.role === 'admin', 
+        grade: user.employee_grade, 
+        department: user.department,
+        designation: user.designation
+      } 
+    });
+  } catch (err) {
+    console.error('Sync user error:', err.message);
+    res.status(500).json({ message: 'Failed to sync user: ' + err.message });
+  }
+});
+
 // POST /login - verify Firebase Auth token and return backend JWT
 app.post('/login', async (req, res) => {
   const { firebaseToken, email } = req.body;
@@ -569,6 +665,85 @@ app.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err.message);
     res.status(401).json({ message: 'Invalid Firebase token' });
+  }
+});
+
+// POST /sync-all-users - Sync all Firebase users with database (admin only)
+app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    if (!pool) {
+      return res.status(500).json({ message: 'Database not available' });
+    }
+    
+    console.log('Starting bulk user sync...');
+    
+    // Get all users from Firebase
+    const listUsersResult = await admin.auth().listUsers();
+    const firebaseUsers = listUsersResult.users;
+    
+    console.log(`Found ${firebaseUsers.length} users in Firebase`);
+    
+    const syncResults = {
+      created: 0,
+      updated: 0,
+      errors: 0,
+      details: []
+    };
+    
+    for (const firebaseUser of firebaseUsers) {
+      try {
+        // Check if user exists in database
+        let result = await pool.query('SELECT * FROM users WHERE firebase_uid = $1 OR email = $2', [firebaseUser.uid, firebaseUser.email]);
+        let user = result.rows[0];
+        
+        if (user) {
+          // Update existing user
+          await pool.query(`
+            UPDATE users 
+            SET name = $1, email = $2, firebase_uid = $3, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $4
+          `, [
+            firebaseUser.displayName || user.name,
+            firebaseUser.email,
+            firebaseUser.uid,
+            user.id
+          ]);
+          syncResults.updated++;
+          syncResults.details.push({ email: firebaseUser.email, action: 'updated' });
+        } else {
+          // Create new user
+          await pool.query(`
+            INSERT INTO users (name, email, role, password, department, employee_grade, designation, firebase_uid)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, [
+            firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            firebaseUser.email,
+            'user',
+            'firebase_auth',
+            'General',
+            'G1',
+            'Employee',
+            firebaseUser.uid
+          ]);
+          syncResults.created++;
+          syncResults.details.push({ email: firebaseUser.email, action: 'created' });
+        }
+      } catch (error) {
+        console.error(`Error syncing user ${firebaseUser.email}:`, error.message);
+        syncResults.errors++;
+        syncResults.details.push({ email: firebaseUser.email, action: 'error', error: error.message });
+      }
+    }
+    
+    console.log('Bulk sync completed:', syncResults);
+    res.json({
+      success: true,
+      message: `Sync completed: ${syncResults.created} created, ${syncResults.updated} updated, ${syncResults.errors} errors`,
+      results: syncResults
+    });
+  } catch (err) {
+    console.error('Bulk sync error:', err.message);
+    res.status(500).json({ message: 'Failed to sync users: ' + err.message });
   }
 });
 
