@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaEdit, FaTrash, FaUserShield, FaDownload, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import DashboardLayout from './components/DashboardLayout';
 import { getApiBaseUrl, syncAllUsers } from './utils/api';
 
@@ -35,8 +35,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [importStatus, setImportStatus] = useState('');
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState('');
+
 
   // Fetch audit logs
   useEffect(() => {
@@ -109,6 +108,8 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       };
       delete userData.role;
       delete userData.employee_grade;
+      
+      // Create user in database
       const res = await fetch(`${getApiBaseUrl()}/users`, {
         method: 'POST',
         headers: {
@@ -119,7 +120,15 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create user');
-      setCreateMsg('User created successfully!');
+      
+      // Sync with Firebase after successful database creation
+      try {
+        await syncAllUsers();
+        setCreateMsg('User created successfully and synced with Firebase!');
+      } catch (syncErr) {
+        setCreateMsg(`User created in database but Firebase sync failed: ${syncErr.message}`);
+      }
+      
       setNewUser({ name: '', email: '', password: '', department: DEPARTMENTS[0], employee_grade: '', designation: '' });
       await fetchUsers();
       setShowAddModal(false);
@@ -183,19 +192,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     URL.revokeObjectURL(url);
   };
 
-  const handleSyncUsers = async () => {
-    setSyncMsg('');
-    setSyncing(true);
-    try {
-      const result = await syncAllUsers();
-      setSyncMsg(`Sync completed: ${result.results.created} created, ${result.results.updated} updated, ${result.results.errors} errors`);
-      await fetchUsers(); // Refresh the user list
-    } catch (err) {
-      setSyncMsg(err.message);
-    } finally {
-      setSyncing(false);
-    }
-  };
+
 
   const handleSaveUser = async (id) => {
     try {
@@ -487,54 +484,13 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                     gap: '0.5rem',
                     transition: 'all 0.2s ease'
                   }}
-                >
-                  <FaPlus />
-                  Add New User
-                </button>
-                <button
-                  onClick={fetchUsers}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s ease'
-                  }}
                   disabled={refreshing}
                 >
-                  <FaDownload />
-                  Refresh
-                </button>
-                <button
-                  onClick={handleSyncUsers}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s ease'
-                  }}
-                  disabled={syncing}
-                >
-                  <FaUserShield />
-                  {syncing ? 'Syncing...' : 'Sync Firebase Users'}
+                  <FaPlus />
+                  {refreshing ? 'Creating User...' : 'Add New User'}
                 </button>
                 {refreshing && (
-                  <span style={{ color: '#3b82f6', fontWeight: '500' }}>Refreshing...</span>
+                  <span style={{ color: '#10b981', fontWeight: '500' }}>Creating user and syncing with Firebase...</span>
                 )}
               </div>
               {createMsg && (
@@ -547,18 +503,6 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                   fontWeight: '500'
                 }}>
                   {createMsg}
-                </div>
-              )}
-              {syncMsg && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  background: syncMsg.includes('completed') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                  color: syncMsg.includes('completed') ? '#22c55e' : '#ef4444',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}>
-                  {syncMsg}
                 </div>
               )}
               </div>
