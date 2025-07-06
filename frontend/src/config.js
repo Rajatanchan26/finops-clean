@@ -1,34 +1,31 @@
 // Configuration for different environments
-// Updated to use environment variables for production deployment
 const config = {
   development: {
-    API_BASE_URL: 'http://localhost:5000',
+    API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
     FIREBASE_CONFIG: {
-      // Your Firebase config for development
+      apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.REACT_APP_FIREBASE_APP_ID,
+      measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
     }
   },
   production: {
-    // Updated with the correct Railway backend URL
-    API_BASE_URL: 'https://finops-clean-production.up.railway.app',
+    API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://finops-clean-production.up.railway.app',
     FIREBASE_CONFIG: {
-      // Your Firebase config for production
+      apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.REACT_APP_FIREBASE_APP_ID,
+      measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
     }
   }
 };
 
-// Force production environment for now to fix CORS issue
-const environment = 'production'; // process.env.NODE_ENV || 'development';
+const environment = process.env.NODE_ENV || 'development';
 
-// Enhanced debug logging with timestamp for cache busting
-console.log('=== CONFIG DEBUG INFO ===');
-console.log('Timestamp:', new Date().toISOString());
-console.log('Environment:', environment);
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
-console.log('All env vars starting with REACT_APP_:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
-console.log('Selected config:', config[environment]);
-console.log('Final API_BASE_URL:', config[environment].API_BASE_URL);
-console.log('========================');
-
-// Export the appropriate config
 export default config[environment]; 

@@ -17,8 +17,7 @@ function LoginPage({ setUser, setToken }) {
     setError('');
     setLoading(true);
     
-    // TEST ALERT - If you see this, the new code is deployed
-    alert('NEW CODE DEPLOYED! Testing Railway connection...');
+
     
     try {
       // 1. Firebase Auth
@@ -29,13 +28,10 @@ function LoginPage({ setUser, setToken }) {
       const firebaseToken = await userCredential.user.getIdToken();
       
       // 3. Sync user with database using Firebase token
-      console.log('Syncing user with database...');
       const syncData = await syncUserWithDatabase(firebaseToken, {
         name: userCredential.user.displayName || email.split('@')[0],
         email: email
       });
-      
-      console.log('Sync successful:', syncData);
       setUser(syncData.user);
       setToken(syncData.token);
       // Let the App component handle the redirect based on user role
