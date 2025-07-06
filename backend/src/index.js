@@ -74,7 +74,6 @@ try {
         rejectUnauthorized: false
       }
     });
-    console.log('Connected to Railway PostgreSQL database');
   } else {
     // Fallback to individual environment variables
     pool = new Pool({
@@ -84,10 +83,9 @@ try {
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || 'finops',
     });
-    console.log('Connected to PostgreSQL using individual env variables');
   }
 } catch (error) {
-  console.log('Database connection failed, using mock data:', error.message);
+  console.error('Database connection failed:', error.message);
   pool = null;
 }
 
@@ -98,26 +96,12 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
-  console.log('authenticateToken - authHeader:', authHeader ? 'present' : 'missing');
-  console.log('authenticateToken - token length:', token ? token.length : 'undefined');
-  console.log('authenticateToken - token preview:', token ? token.substring(0, 20) + '...' : 'undefined');
-  
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
   
   jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key', (err, user) => {
     if (err) {
-      console.log('authenticateToken - JWT verification failed:', err.message);
-      console.log('authenticateToken - JWT error name:', err.name);
-      console.log('authenticateToken - JWT error stack:', err.stack);
       return res.status(403).json({ message: 'Forbidden: ' + err.message });
     }
-    
-    console.log('authenticateToken - JWT verified, user:', {
-      id: user.id,
-      is_admin: user.is_admin,
-      grade: user.grade,
-      department: user.department
-    });
     
     req.user = user;
     next();
@@ -166,10 +150,8 @@ app.get('/audit-logs', authenticateToken, requireAdmin, async (req, res) => {
 
 // GET /users (admin only)
 app.get('/users', authenticateToken, requireAdmin, async (req, res) => {
-  console.log('GET /users - route handler reached');
   try {
     const result = await pool.query('SELECT id, name, email, is_admin, grade, department, employee_grade, designation FROM users ORDER BY id');
-    console.log('GET /users - query successful, rows:', result.rows.length);
     // Transform the data to include 'role' field for frontend compatibility
     const users = result.rows.map(user => ({
       ...user,
@@ -186,7 +168,6 @@ app.get('/users', authenticateToken, requireAdmin, async (req, res) => {
 app.get('/users/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   // Only allow self or admin
-  console.log('GET /users/:id', { param_id: id, jwt_id: req.user.id, role: req.user.role });
   if (parseInt(id) !== req.user.id && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Forbidden' });
   }
@@ -496,9 +477,6 @@ app.get('/me', authenticateToken, async (req, res) => {
 app.post('/sync-user', async (req, res) => {
   const { firebaseToken, userData } = req.body;
   
-  console.log('Sync user attempt - firebaseToken length:', firebaseToken ? firebaseToken.length : 'undefined');
-  console.log('Sync user data:', userData);
-  
   if (!firebaseToken) {
     return res.status(400).json({ message: 'Firebase token required' });
   }
@@ -508,8 +486,6 @@ app.post('/sync-user', async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
     const firebase_uid = decodedToken.uid;
     const email = decodedToken.email;
-    
-    console.log('Firebase token verified, UID:', firebase_uid, 'Email:', email);
     
     if (!pool) {
       return res.status(500).json({ message: 'Database not available' });
@@ -534,7 +510,6 @@ app.post('/sync-user', async (req, res) => {
       ]);
       
       user = updateResult.rows[0];
-      console.log('User updated in database:', user.email);
     } else {
       // Create new user in database
       const insertResult = await pool.query(`
@@ -553,7 +528,6 @@ app.post('/sync-user', async (req, res) => {
       ]);
       
       user = insertResult.rows[0];
-      console.log('New user created in database:', user.email);
     }
     
     // Generate backend JWT token
@@ -592,11 +566,7 @@ app.post('/sync-user', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { firebaseToken, email } = req.body;
   
-  console.log('Login attempt - firebaseToken length:', firebaseToken ? firebaseToken.length : 'undefined');
-  console.log('Login attempt - email:', email);
-  
   if (!firebaseToken) {
-    console.log('No Firebase token provided');
     return res.status(400).json({ message: 'Firebase token required' });
   }
 
@@ -609,29 +579,21 @@ app.post('/login', async (req, res) => {
       try {
         const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
         const firebase_uid = decodedToken.uid;
-        console.log('Firebase token verified, UID:', firebase_uid);
         
         const result = await pool.query('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid]);
         user = result.rows[0];
-        console.log('Database lookup result:', user ? 'User found' : 'User not found');
       } catch (dbError) {
-        console.log('Database lookup failed, using mock data. Error:', dbError.message);
+        // Database lookup failed, will use mock data
       }
     }
     
     // If no user from database, use mock data
     if (!user && email) {
-      console.log('Trying mock user lookup for email:', email);
       user = mockUsers.find(u => u.email === email);
-      console.log('Mock user lookup result:', user ? 'User found' : 'User not found');
-      if (user) {
-        console.log('Mock user details:', { id: user.id, name: user.name, email: user.email, grade: user.grade });
-      }
     }
     
     // Additional fallback: if Firebase auth succeeded but user not in DB, create a mock user
     if (!user && email && firebaseToken) {
-      console.log('Firebase auth succeeded but user not in DB, creating mock user for:', email);
       // Create a mock user with a generated ID
       const mockUser = {
         id: Date.now(), // Generate a unique ID
@@ -644,16 +606,11 @@ app.post('/login', async (req, res) => {
         firebase_uid: 'mock_' + Date.now()
       };
       user = mockUser;
-      console.log('Created mock user:', mockUser);
     }
     
     if (!user) {
-      console.log('User not found for email:', email);
-      console.log('Available mock users:', mockUsers.map(u => u.email));
       return res.status(401).json({ message: 'User not found in database' });
     }
-    
-    console.log('User found:', user.email);
     
     // Generate backend JWT token
     const token = jwt.sign(
@@ -662,7 +619,6 @@ app.post('/login', async (req, res) => {
       { expiresIn: '1h' }
     );
     
-    console.log('Login successful for user:', user.email);
     res.json({ 
       token, 
       user: { 
@@ -688,13 +644,9 @@ app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) =>
       return res.status(500).json({ message: 'Database not available' });
     }
     
-    console.log('Starting bulk user sync...');
-    
     // Get all users from Firebase
     const listUsersResult = await admin.auth().listUsers();
     const firebaseUsers = listUsersResult.users;
-    
-    console.log(`Found ${firebaseUsers.length} users in Firebase`);
     
     const syncResults = {
       created: 0,
@@ -748,7 +700,6 @@ app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) =>
       }
     }
     
-    console.log('Bulk sync completed:', syncResults);
     res.json({
       success: true,
       message: `Sync completed: ${syncResults.created} created, ${syncResults.updated} updated, ${syncResults.errors} errors`,

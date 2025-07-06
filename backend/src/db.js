@@ -10,7 +10,6 @@ if (process.env.DATABASE_URL) {
       rejectUnauthorized: false
     }
   });
-  console.log('Connected to Railway PostgreSQL database via db.js');
 } else {
   // Fallback to individual environment variables
   pool = new Pool({
@@ -20,7 +19,6 @@ if (process.env.DATABASE_URL) {
     port: process.env.DB_PORT,
     database: process.env.DB_NAME,
   });
-  console.log('Connected to PostgreSQL using individual env variables via db.js');
 }
 
 module.exports = pool; 
