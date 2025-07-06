@@ -492,7 +492,7 @@ app.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /sync-user - Sync Firebase user with database
+// POST /sync-user - Sync Firebase user with database (updated for main branch)
 app.post('/sync-user', async (req, res) => {
   const { firebaseToken, userData } = req.body;
   
