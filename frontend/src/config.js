@@ -1,4 +1,5 @@
 // Configuration for different environments
+// Updated to use environment variables for production deployment
 const config = {
   development: {
     API_BASE_URL: 'http://localhost:5000',
