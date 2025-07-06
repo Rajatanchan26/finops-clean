@@ -16,8 +16,8 @@ const config = {
   }
 };
 
-// Get current environment
-const environment = process.env.NODE_ENV || 'development';
+// Force production environment for now to fix CORS issue
+const environment = 'production'; // process.env.NODE_ENV || 'development';
 
 // Enhanced debug logging
 console.log('=== CONFIG DEBUG INFO ===');
