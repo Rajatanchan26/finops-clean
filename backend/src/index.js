@@ -27,7 +27,9 @@ app.use(cors({
       'http://localhost:3000',
       'https://finops-clean-hwqdeu3si-rajats-projects-9f45924f.vercel.app',
       'https://finops-clean-po9r-ln6yzg9ko-rajats-projects-9f45924f.vercel.app',
-      'https://finops-clean-po9r-git-clean-main-rajats-projects-9f45924f.vercel.app'
+      'https://finops-clean-po9r-git-clean-main-rajats-projects-9f45924f.vercel.app',
+      'https://finops-clean-po9r.vercel.app', // Main branch frontend URL
+      'https://finops-clean-po9r-git-clean-main-rajats-projects-9f45924f.vercel.app' // Clean-main branch frontend URL
     ];
     
     // Allow any Vercel domain for this project
