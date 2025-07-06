@@ -2546,3 +2546,85 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+// POST /register - Register new user (alias for /sync-user)
+app.post('/register', async (req, res) => {
+  const { firebaseToken, email } = req.body;
+  
+  if (!firebaseToken) {
+    return res.status(400).json({ message: 'Firebase token required' });
+  }
+
+  try {
+    // Check if Firebase Admin is properly initialized
+    if (!admin.apps.length) {
+      return res.status(500).json({ message: 'Firebase Admin not initialized. Please check environment variables.' });
+    }
+
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    const firebase_uid = decodedToken.uid;
+    const userEmail = decodedToken.email || email;
+    
+    if (!pool) {
+      return res.status(500).json({ message: 'Database not available' });
+    }
+    
+    // Check if user already exists in database
+    let result = await pool.query('SELECT * FROM users WHERE firebase_uid = $1 OR email = $2', [firebase_uid, userEmail]);
+    let user = result.rows[0];
+    
+    if (user) {
+      return res.status(409).json({ message: 'Email already registered' });
+    } else {
+      // Create new user in database
+      const insertResult = await pool.query(`
+        INSERT INTO users (name, email, password, department, employee_grade, designation, firebase_uid, is_admin, grade)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `, [
+        userEmail.split('@')[0], // Use email prefix as name
+        userEmail,
+        'firebase_auth', // Placeholder since we use Firebase auth
+        'General', // Default department
+        'G1', // Default grade
+        'Employee', // Default designation
+        firebase_uid,
+        false, // Default to not admin
+        1 // Default grade
+      ]);
+      
+      user = insertResult.rows[0];
+    }
+    
+    // Generate backend JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        is_admin: user.is_admin, 
+        grade: user.grade, 
+        department: user.department 
+      },
+      process.env.JWT_SECRET || 'fallback-secret-key',
+      { expiresIn: '1h' }
+    );
+    
+    res.json({ 
+      success: true,
+      message: 'User registered successfully',
+      token, 
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        is_admin: user.is_admin, 
+        grade: user.grade, 
+        department: user.department,
+        designation: user.designation
+      } 
+    });
+  } catch (err) {
+    console.error('Register user error:', err.message);
+    res.status(500).json({ message: 'Failed to register user: ' + err.message });
+  }
+});
