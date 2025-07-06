@@ -7,6 +7,10 @@ import ProfileModal from './ProfileModal';
 import { getApiBaseUrl } from './utils/api';
 import './App.css';
 import './components/DashboardComponents.css';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import SignUpPage from './SignUpPage';
+import DashboardLayout from './components/DashboardLayout';
+import Transactions from './Transactions';
 
 import G1Dashboard from './G1Dashboard';
 import G2Dashboard from './G2Dashboard';
@@ -125,8 +129,6 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-
 
   useEffect(() => {
     const checkAuth = async () => {
