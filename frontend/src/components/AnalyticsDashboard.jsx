@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import config from '../config';
+import { getApiBaseUrl } from '../../utils/api';
 
 function AnalyticsDashboard({ user, token }) {
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -20,7 +20,7 @@ function AnalyticsDashboard({ user, token }) {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${config.API_BASE_URL}/analytics?range=${timeRange}&metric=${selectedMetric}`, {
+      const response = await fetch(`${getApiBaseUrl()}/analytics?range=${timeRange}&metric=${selectedMetric}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -48,7 +48,7 @@ function AnalyticsDashboard({ user, token }) {
   const handleExport = async (format) => {
     setExporting(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/export/analytics?format=${format}&range=${timeRange}&metric=${selectedMetric}`, {
+      const response = await fetch(`${getApiBaseUrl()}/export/analytics?format=${format}&range=${timeRange}&metric=${selectedMetric}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

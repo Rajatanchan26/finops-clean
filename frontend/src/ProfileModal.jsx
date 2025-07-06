@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import config from './config';
+import { getAuth, updateProfile } from 'firebase/auth';
+import { getApiBaseUrl } from './utils/api';
 
 function ProfileModal({ user, token, setUser, onClose }) {
   const [previewUrl, setPreviewUrl] = useState(user.profile_picture_url || user.profile_picture || '');
@@ -19,7 +20,7 @@ function ProfileModal({ user, token, setUser, onClose }) {
       const formData = new FormData();
       formData.append('profile_picture', file);
       try {
-        const res = await fetch(`${config.API_BASE_URL}/users/${user.id}/profile-picture/upload`, {
+        const res = await fetch(`${getApiBaseUrl()}/users/${user.id}/profile-picture/upload`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -28,7 +29,7 @@ function ProfileModal({ user, token, setUser, onClose }) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to upload image');
-        const profileRes = await fetch(`${config.API_BASE_URL}/me`, {
+        const profileRes = await fetch(`${getApiBaseUrl()}/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const profileData = await profileRes.json();

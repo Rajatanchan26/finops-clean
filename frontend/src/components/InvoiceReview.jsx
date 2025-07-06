@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import config from '../config';
+import { getApiBaseUrl } from '../../utils/api';
 
 function InvoiceReview({ scope = 'department', user, token }) {
   const [invoices, setInvoices] = useState([]);
@@ -16,7 +16,7 @@ function InvoiceReview({ scope = 'department', user, token }) {
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch(`${config.API_BASE_URL}/invoices?scope=${scope}&status=${filter}`, {
+      const response = await fetch(`${getApiBaseUrl()}/invoices?scope=${scope}&status=${filter}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -47,7 +47,7 @@ function InvoiceReview({ scope = 'department', user, token }) {
     }
 
     try {
-      const response = await fetch(`${config.API_BASE_URL}/invoices/${invoiceId}/status`, {
+      const response = await fetch(`${getApiBaseUrl()}/invoices/${invoiceId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ function InvoiceReview({ scope = 'department', user, token }) {
   const handleExport = async (format) => {
     setExporting(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/export/invoices?format=${format}&scope=${scope}&status=${filter}`, {
+      const response = await fetch(`${getApiBaseUrl()}/export/invoices?format=${format}&scope=${scope}&status=${filter}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

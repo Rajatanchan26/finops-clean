@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import config from './config';
+import { getApiBaseUrl } from './utils/api';
 
 const CATEGORIES = [
   'Travel',
@@ -25,7 +25,7 @@ function Transactions({ token, user, onLogout }) {
 
   const fetchTransactions = async () => {
     try {
-      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
+      const res = await fetch(`${getApiBaseUrl()}/transactions`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch transactions');
@@ -42,7 +42,7 @@ function Transactions({ token, user, onLogout }) {
     e.preventDefault();
     setMsg('');
     try {
-      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
+      const res = await fetch(`${getApiBaseUrl()}/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ function Transactions({ token, user, onLogout }) {
 
   const updateTransactionStatus = async (id, status) => {
     try {
-      const res = await fetch(`${config.API_BASE_URL}/transactions`, {
+      const res = await fetch(`${getApiBaseUrl()}/transactions`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ function Transactions({ token, user, onLogout }) {
 
   const updateTransactionStatusById = async (id, status) => {
     try {
-      const res = await fetch(`${config.API_BASE_URL}/transactions/${id}/status`, {
+      const res = await fetch(`${getApiBaseUrl()}/transactions/${id}/status`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',

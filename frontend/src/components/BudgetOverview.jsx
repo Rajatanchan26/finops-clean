@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import config from '../config';
+import { getApiBaseUrl } from '../../utils/api';
 
 function BudgetOverview({ scope = 'self', user, token }) {
   const [budgetData, setBudgetData] = useState(null);
@@ -13,7 +13,7 @@ function BudgetOverview({ scope = 'self', user, token }) {
 
   const fetchBudgetData = async () => {
     try {
-      const response = await fetch(`${config.API_BASE_URL}/budget?scope=${scope}`, {
+      const response = await fetch(`${getApiBaseUrl()}/budget?scope=${scope}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -35,7 +35,7 @@ function BudgetOverview({ scope = 'self', user, token }) {
   const handleExport = async (format) => {
     setExporting(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/export/budget/${format}?scope=${scope}`, {
+      const response = await fetch(`${getApiBaseUrl()}/export/budget/${format}?scope=${scope}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

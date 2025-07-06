@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import config from '../config';
+import { getApiBaseUrl } from '../../utils/api';
 import './InvoiceForm.css';
 
 function InvoiceForm({ scope = 'self', user, token, onInvoiceCreated }) {
@@ -18,7 +18,7 @@ function InvoiceForm({ scope = 'self', user, token, onInvoiceCreated }) {
     setMessage('Submitting invoice...');
     
     try {
-      const response = await fetch(`${config.API_BASE_URL}/invoices`, {
+      const response = await fetch(`${getApiBaseUrl()}/invoices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

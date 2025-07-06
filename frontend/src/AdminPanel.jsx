@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaEdit, FaTrash, FaUserShield, FaDownload, FaPlus } from 'react-icons/fa';
 import DashboardLayout from './components/DashboardLayout';
-import config from './config';
+import { getApiBaseUrl } from './utils/api';
 
 const DEPARTMENTS = [
   'Finance',
@@ -41,7 +41,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     if (user.role !== 'admin') return;
     const fetchLogs = async () => {
       try {
-        const res = await fetch(`${config.API_BASE_URL}/audit-logs`, {
+        const res = await fetch(`${getApiBaseUrl()}/audit-logs`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -64,7 +64,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     const fetchUsers = async () => {
     setRefreshing(true);
       try {
-        const res = await fetch(`${config.API_BASE_URL}/users`, {
+        const res = await fetch(`${getApiBaseUrl()}/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -79,7 +79,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const makeAdmin = async (id) => {
     setUserMsg('');
     try {
-      const res = await fetch(`${config.API_BASE_URL}/users/${id}/role`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/${id}/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       };
       delete userData.role;
       delete userData.employee_grade;
-      const res = await fetch(`${config.API_BASE_URL}/users`, {
+      const res = await fetch(`${getApiBaseUrl()}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     const formData = new FormData();
     formData.append('csv', file);
     try {
-      const res = await fetch(`${config.API_BASE_URL}/users/import`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/import`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -190,7 +190,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       };
       delete userData.role; // Remove role field as backend expects is_admin
       
-      const res = await fetch(`${config.API_BASE_URL}/users/${id}`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      const res = await fetch(`${config.API_BASE_URL}/users/${id}`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

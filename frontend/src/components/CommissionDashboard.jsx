@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import config from '../config';
+import { getApiBaseUrl } from '../../utils/api';
 
 function CommissionDashboard({ scope = 'self', user, token }) {
   const [commissionData, setCommissionData] = useState(null);
@@ -14,7 +14,7 @@ function CommissionDashboard({ scope = 'self', user, token }) {
 
   const fetchCommissionData = async () => {
     try {
-      const response = await fetch(`${config.API_BASE_URL}/commission?scope=${scope}&range=${timeRange}`, {
+      const response = await fetch(`${getApiBaseUrl()}/commission?scope=${scope}&range=${timeRange}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -36,7 +36,7 @@ function CommissionDashboard({ scope = 'self', user, token }) {
   const handleExport = async (format) => {
     setExporting(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/export/commission?format=${format}&scope=${scope}&range=${timeRange}`, {
+      const response = await fetch(`${getApiBaseUrl()}/export/commission?format=${format}&scope=${scope}&range=${timeRange}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
