@@ -8,8 +8,8 @@ const config = {
     }
   },
   production: {
-    // Temporarily hardcoded for testing - replace with your actual Railway URL
-    API_BASE_URL: 'https://finops-backend-production.up.railway.app',
+    // Updated with the correct Railway backend URL
+    API_BASE_URL: 'https://finops-clean-production.up.railway.app',
     FIREBASE_CONFIG: {
       // Your Firebase config for production
     }
