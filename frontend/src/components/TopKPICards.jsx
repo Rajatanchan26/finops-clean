@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiBaseUrl } from '../../utils/api';
+import { getApiBaseUrl } from '../utils/api';
 import './TopKPICards.css';
 
 function TopKPICards({ scope = 'self', user, token }) {

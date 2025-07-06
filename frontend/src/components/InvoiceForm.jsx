@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getApiBaseUrl } from '../../utils/api';
+import { getApiBaseUrl } from '../utils/api';
 import './InvoiceForm.css';
 
 function InvoiceForm({ scope = 'self', user, token, onInvoiceCreated }) {

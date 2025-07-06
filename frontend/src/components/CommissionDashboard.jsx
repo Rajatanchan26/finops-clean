@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiBaseUrl } from '../../utils/api';
+import { getApiBaseUrl } from '../utils/api';
 
 function CommissionDashboard({ scope = 'self', user, token }) {
   const [commissionData, setCommissionData] = useState(null);
