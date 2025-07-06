@@ -1,70 +1,186 @@
-# Getting Started with Create React App
+# FinOps Backend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Express.js backend server for the Financial Operations Management System.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **User Authentication**: Firebase Auth integration with JWT tokens
+- **Database Management**: PostgreSQL with Railway integration
+- **Role-based Access Control**: Admin, G1, G2, G3 user roles
+- **Invoice Management**: CRUD operations for invoices
+- **Budget Tracking**: Department and user-level budget management
+- **Commission Tracking**: Revenue and commission calculations
+- **Export Functionality**: PDF, Excel, and CSV exports
+- **Real-time Notifications**: WebSocket-based notifications
+- **Audit Logging**: Comprehensive audit trail
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Node.js** with Express.js
+- **PostgreSQL** database (Railway)
+- **Firebase Authentication**
+- **JWT** for session management
+- **WebSocket** for real-time features
+- **Multer** for file uploads
+- **ExcelJS** for Excel file generation
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Prerequisites
 
-### `npm test`
+- Node.js (v16 or higher)
+- Railway PostgreSQL database (recommended) or local PostgreSQL
+- Firebase project setup
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Installation
 
-### `npm run build`
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd backend
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. **Set up environment variables**
+   
+   Create a `.env` file or set Railway environment variables:
+   ```
+   DATABASE_URL=your_railway_postgresql_url
+   JWT_SECRET=your_jwt_secret_key
+   FIREBASE_PROJECT_ID=your_firebase_project_id
+   FRONTEND_URL=your_frontend_url
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. **Initialize the database**
+   ```bash
+   npm run init-db
+   ```
 
-### `npm run eject`
+5. **Start the server**
+   ```bash
+   npm start
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Environment Variables
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Required
+- `DATABASE_URL` - Railway PostgreSQL connection string
+- `JWT_SECRET` - Secret key for JWT token signing
+- `FIREBASE_PROJECT_ID` - Your Firebase project ID
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Optional
+- `PORT` - Server port (default: 5000)
+- `FRONTEND_URL` - Frontend URL for CORS
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Database Setup
 
-## Learn More
+The application automatically uses Railway's `DATABASE_URL` environment variable. See `RAILWAY_SETUP.md` for detailed database configuration instructions.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## API Endpoints
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Authentication
+- `POST /login` - User login with Firebase token
+- `POST /sync-user` - Sync Firebase user with database
+- `POST /sync-all-users` - Bulk sync all Firebase users (admin only)
 
-### Code Splitting
+### Users
+- `GET /users` - Get all users (admin only)
+- `GET /users/:id` - Get user details
+- `POST /users` - Create new user (admin only)
+- `PATCH /users/:id` - Update user (admin only)
+- `DELETE /users/:id` - Delete user (admin only)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Invoices
+- `GET /invoices` - Get all invoices
+- `POST /invoices` - Create new invoice
+- `PATCH /invoices/:id` - Update invoice
+- `DELETE /invoices/:id` - Delete invoice
+- `GET /invoices/export` - Export invoices
 
-### Analyzing the Bundle Size
+### Budget
+- `GET /budget` - Get budget data by scope
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Commission
+- `GET /commission` - Get commission data by scope
 
-### Making a Progressive Web App
+### Analytics
+- `GET /analytics` - Get analytics data
+- `GET /transactions` - Get transaction data
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Development
 
-### Advanced Configuration
+### Running in Development Mode
+```bash
+npm run dev
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Database Initialization
+```bash
+npm run init-db
+```
 
-### Deployment
+### Testing Database Connection
+The application includes automatic database connection testing and fallback to mock data if the database is unavailable.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Deployment
 
-### `npm run build` fails to minify
+### Railway Deployment
+1. Connect your GitHub repository to Railway
+2. Set environment variables in Railway dashboard
+3. Deploy automatically on push to main branch
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Environment Variables for Production
+- `DATABASE_URL` - Railway PostgreSQL URL
+- `JWT_SECRET` - Strong secret key
+- `FIREBASE_PROJECT_ID` - Production Firebase project
+- `FRONTEND_URL` - Production frontend URL
+
+## Security
+
+- SSL/TLS encryption for database connections
+- JWT token authentication
+- Role-based access control
+- Input validation and sanitization
+- CORS configuration
+- Rate limiting (recommended for production)
+
+## Monitoring
+
+- Database connection logging
+- Error tracking and logging
+- Performance monitoring
+- Audit trail for all user actions
+
+## Troubleshooting
+
+See `RAILWAY_SETUP.md` for database-specific troubleshooting.
+
+### Common Issues
+
+1. **Database Connection Failed**
+   - Check `DATABASE_URL` environment variable
+   - Verify Railway PostgreSQL service is running
+   - Check SSL configuration
+
+2. **Authentication Issues**
+   - Verify Firebase configuration
+   - Check JWT secret is set
+   - Ensure Firebase project ID is correct
+
+3. **CORS Errors**
+   - Update `FRONTEND_URL` environment variable
+   - Check CORS configuration in `index.js`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.

@@ -63,18 +63,31 @@ const mockUsers = [
   }
 ];
 
-// PostgreSQL connection pool using env variables (with fallback)
+// PostgreSQL connection pool using Railway DATABASE_URL
 let pool;
 try {
-  pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'password',
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'finops',
-  });
+  if (process.env.DATABASE_URL) {
+    // Use Railway's DATABASE_URL
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+    console.log('Connected to Railway PostgreSQL database');
+  } else {
+    // Fallback to individual environment variables
+    pool = new Pool({
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'password',
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'finops',
+    });
+    console.log('Connected to PostgreSQL using individual env variables');
+  }
 } catch (error) {
-  console.log('Database connection failed, using mock data');
+  console.log('Database connection failed, using mock data:', error.message);
   pool = null;
 }
 

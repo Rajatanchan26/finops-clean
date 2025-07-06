@@ -25,6 +25,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "build": "echo 'No build step required for Node.js'",
-    "postinstall": "echo 'Backend dependencies installed successfully'"
+    "postinstall": "echo 'Backend dependencies installed successfully'",
+    "init-db": "node init-db.js"
   }
 }
