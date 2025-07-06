@@ -520,7 +520,7 @@ app.post('/sync-user', async (req, res) => {
       // Update existing user with latest Firebase data
       const updateResult = await pool.query(`
         UPDATE users 
-        SET name = $1, email = $2, firebase_uid = $3, updated_at = CURRENT_TIMESTAMP
+        SET name = $1, email = $2, firebase_uid = $3
         WHERE id = $4
         RETURNING *
       `, [
@@ -534,18 +534,19 @@ app.post('/sync-user', async (req, res) => {
     } else {
       // Create new user in database
       const insertResult = await pool.query(`
-        INSERT INTO users (name, email, role, password, department, employee_grade, designation, firebase_uid)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO users (name, email, password, department, employee_grade, designation, firebase_uid, is_admin, grade)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `, [
         userData?.name || email.split('@')[0],
         email,
-        userData?.role || 'user',
         'firebase_auth', // Placeholder since we use Firebase auth
         userData?.department || 'General',
         userData?.employee_grade || 'G1',
         userData?.designation || 'Employee',
-        firebase_uid
+        firebase_uid,
+        userData?.role === 'admin' || false,
+        parseInt(userData?.employee_grade?.replace('G', '') || '1')
       ]);
       
       user = insertResult.rows[0];
@@ -555,8 +556,8 @@ app.post('/sync-user', async (req, res) => {
     const token = jwt.sign(
       { 
         id: user.id, 
-        is_admin: user.role === 'admin', 
-        grade: parseInt(user.employee_grade?.replace('G', '') || '1'), 
+        is_admin: user.is_admin, 
+        grade: user.grade, 
         department: user.department 
       },
       process.env.JWT_SECRET || 'fallback-secret-key',
@@ -571,8 +572,8 @@ app.post('/sync-user', async (req, res) => {
         id: user.id, 
         name: user.name, 
         email: user.email, 
-        is_admin: user.role === 'admin', 
-        grade: user.employee_grade, 
+        is_admin: user.is_admin, 
+        grade: user.grade, 
         department: user.department,
         designation: user.designation
       } 
@@ -691,7 +692,7 @@ app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) =>
           // Update existing user
           await pool.query(`
             UPDATE users 
-            SET name = $1, email = $2, firebase_uid = $3, updated_at = CURRENT_TIMESTAMP
+            SET name = $1, email = $2, firebase_uid = $3
             WHERE id = $4
           `, [
             firebaseUser.displayName || user.name,
@@ -704,17 +705,18 @@ app.post('/sync-all-users', authenticateToken, requireAdmin, async (req, res) =>
         } else {
           // Create new user
           await pool.query(`
-            INSERT INTO users (name, email, role, password, department, employee_grade, designation, firebase_uid)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO users (name, email, password, department, employee_grade, designation, firebase_uid, is_admin, grade)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           `, [
             firebaseUser.displayName || firebaseUser.email.split('@')[0],
             firebaseUser.email,
-            'user',
             'firebase_auth',
             'General',
             'G1',
             'Employee',
-            firebaseUser.uid
+            firebaseUser.uid,
+            false,
+            1
           ]);
           syncResults.created++;
           syncResults.details.push({ email: firebaseUser.email, action: 'created' });
