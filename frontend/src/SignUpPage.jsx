@@ -215,10 +215,10 @@ function SignUpPage() {
                 e.target.style.boxShadow = 'none';
               }}
             >
-              {DEPARTMENTS.map(dep => (
+            {DEPARTMENTS.map(dep => (
                 <option key={dep} value={dep} style={{ background: '#1e293b', color: '#f1f5f9' }}>{dep}</option>
-              ))}
-            </select>
+            ))}
+          </select>
           </div>
 
           <button

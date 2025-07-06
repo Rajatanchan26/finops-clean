@@ -52,15 +52,15 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
     fetchUsers();
   }, [token, user]);
 
-  const fetchUsers = async () => {
+    const fetchUsers = async () => {
     setRefreshing(true);
-    const res = await fetch('http://localhost:5000/users', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    setUsers(data);
+      const res = await fetch('http://localhost:5000/users', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setUsers(data);
     setRefreshing(false);
-  };
+    };
 
   const makeAdmin = async (id) => {
     setUserMsg('');
@@ -218,7 +218,7 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
       onLogout={onLogout}
       onProfileClick={onProfileClick}
     >
-      {!user.is_admin ? (
+        {!user.is_admin ? (
         <div style={{
           textAlign: 'center',
           padding: '3rem',
@@ -234,10 +234,10 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
           }}>
             Access denied. Admins only.
           </div>
-        </div>
-      ) : (
+          </div>
+        ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Audit Logs Section */}
+            {/* Audit Logs Section */}
           <div className="card">
             <div style={{
               display: 'flex',
@@ -275,10 +275,10 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                     <th>User ID</th>
                     <th>Action</th>
                     <th>Created At</th>
-                  </tr>
-                </thead>
+                    </tr>
+                  </thead>
                 <tbody>
-                  {logs.map(log => (
+                    {logs.map(log => (
                     <tr key={log.id}>
                       <td style={{ fontWeight: '600', color: '#3b82f6' }}>#{log.id}</td>
                       <td>{log.user_id}</td>
@@ -295,14 +295,14 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                         </span>
                       </td>
                       <td style={{ color: '#94a3b8' }}>{new Date(log.created_at).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          {/* User Management Section */}
+            {/* User Management Section */}
           <div className="card">
             <div style={{
               display: 'flex',
@@ -331,9 +331,9 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
               }}>
                 User Management
               </h2>
-            </div>
-            
-            {/* Import Section */}
+              </div>
+              
+              {/* Import Section */}
             <div style={{
               padding: '1.5rem',
               background: 'rgba(30, 41, 59, 0.5)',
@@ -381,8 +381,8 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                         transition: 'all 0.3s ease'
                       }}
                     />
-                    <button 
-                      onClick={handleDownloadTemplate}
+                  <button 
+                    onClick={handleDownloadTemplate}
                       style={{
                         padding: '0.75rem 1.5rem',
                         background: 'rgba(59, 130, 246, 0.1)',
@@ -394,12 +394,12 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                         cursor: 'pointer',
                         transition: 'all 0.2s ease'
                       }}
-                    >
+                  >
                       <FaDownload style={{ marginRight: '0.5rem' }} />
-                      Download Template
-                    </button>
-                  </div>
-                  {importMsg && (
+                    Download Template
+                  </button>
+                </div>
+                {importMsg && (
                     <div style={{
                       padding: '0.75rem 1rem',
                       background: importMsg.includes('completed') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -408,9 +408,9 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                       fontSize: '0.875rem',
                       fontWeight: '500'
                     }}>
-                      {importMsg}
-                    </div>
-                  )}
+                    {importMsg}
+                  </div>
+                )}
                   {importing && (
                     <div style={{
                       padding: '0.75rem 1rem',
@@ -422,10 +422,10 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                     }}>
                       Importing users... Please wait.
                     </div>
-                  )}
-                </div>
+                    )}
+                  </div>
               </div>
-            </div>
+              </div>
 
             {/* Create User Section */}
             <div style={{
@@ -498,13 +498,13 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                   {createMsg}
                 </div>
               )}
-            </div>
+              </div>
 
-            {/* Users Table */}
+              {/* Users Table */}
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <tr>
+                    <tr>
                     <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
@@ -513,8 +513,8 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                     <th>Designation</th>
                     <th>Role</th>
                     <th>Actions</th>
-                  </tr>
-                </thead>
+                    </tr>
+                  </thead>
                 <tbody>
                   {users.map(user => (
                     <tr key={user.id}>
@@ -535,10 +535,10 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                         }}>
                           {user.is_admin ? 'Admin' : 'User'}
                         </span>
-                      </td>
+                            </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
+                                <button 
                             onClick={() => {
                               setEditUserId(user.id);
                               setEditUserData(user);
@@ -554,8 +554,8 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                             }}
                           >
                             <FaEdit />
-                          </button>
-                          <button
+                                </button>
+                                <button 
                             onClick={() => handleDeleteUser(user.id)}
                             style={{
                               padding: '0.5rem',
@@ -568,94 +568,94 @@ function AdminPanel({ token, user, onLogout, onProfileClick }) {
                             }}
                           >
                             <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Add User</h3>
-                <button 
-                  onClick={() => setShowAddModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
+                                </button>
+                              </div>
+                            </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <input 
-                  type="text" 
-                  placeholder="Name" 
-                  value={newUser.name} 
-                  onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} 
-                  required 
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <input 
-                  type="email" 
-                  placeholder="Email" 
-                  value={newUser.email} 
-                  onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} 
-                  required 
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <input 
-                  type="password" 
-                  placeholder="Password" 
-                  value={newUser.password} 
-                  onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))} 
-                  required 
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <select 
-                  value={newUser.department} 
-                  onChange={e => setNewUser(u => ({ ...u, department: e.target.value }))}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
-                </select>
-                <input 
-                  type="text" 
-                  placeholder="Employee Grade" 
-                  value={newUser.employee_grade} 
-                  onChange={e => setNewUser(u => ({ ...u, employee_grade: e.target.value }))}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <input 
-                  type="text" 
-                  placeholder="Designation" 
-                  value={newUser.designation} 
-                  onChange={e => setNewUser(u => ({ ...u, designation: e.target.value }))}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <button 
-                  type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Add User
-                </button>
-              </form>
-              {createMsg && (
-                <div className={`mt-3 text-sm ${createMsg.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
-                  {createMsg}
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Add User Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Add User</h3>
+                  <button 
+                    onClick={() => setShowAddModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                </div>
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <input 
+                    type="text" 
+                    placeholder="Name" 
+                    value={newUser.name} 
+                    onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} 
+                    required 
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <input 
+                    type="email" 
+                    placeholder="Email" 
+                    value={newUser.email} 
+                    onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} 
+                    required 
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Password" 
+                    value={newUser.password} 
+                    onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))} 
+                    required 
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <select 
+                    value={newUser.department} 
+                    onChange={e => setNewUser(u => ({ ...u, department: e.target.value }))}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                  </select>
+                  <input 
+                    type="text" 
+                    placeholder="Employee Grade" 
+                    value={newUser.employee_grade} 
+                    onChange={e => setNewUser(u => ({ ...u, employee_grade: e.target.value }))}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Designation" 
+                    value={newUser.designation} 
+                    onChange={e => setNewUser(u => ({ ...u, designation: e.target.value }))}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <button 
+                    type="submit"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Add User
+                  </button>
+                </form>
+                {createMsg && (
+                  <div className={`mt-3 text-sm ${createMsg.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                    {createMsg}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
     </DashboardLayout>
   );
 }

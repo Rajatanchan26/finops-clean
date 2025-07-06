@@ -21,7 +21,7 @@ const port = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://your-frontend-domain.vercel.app',
+    'https://finops-clean-hwqdeu3si-rajats-projects-9f45924f.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true

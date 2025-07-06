@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     user_id INTEGER REFERENCES users(id),
     action TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+); 
 
 -- Sample invoice data for analytics
 INSERT INTO invoices (invoice_number, amount, commission_amount, commission_rate, status, description, user_id, created_at) VALUES

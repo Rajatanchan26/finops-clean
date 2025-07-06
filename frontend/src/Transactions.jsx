@@ -204,7 +204,7 @@ function Transactions({ token, user, onLogout }) {
                     {cat}
                   </option>
                 ))}
-              </select>
+          </select>
             </div>
 
             <div>
@@ -305,7 +305,7 @@ function Transactions({ token, user, onLogout }) {
             >
               Submit Transaction
             </button>
-          </form>
+        </form>
 
           {msg && (
             <div style={{
