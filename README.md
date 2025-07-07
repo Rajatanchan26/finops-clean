@@ -107,10 +107,20 @@ A full-stack web application for managing revenue, commissions, and user data wi
 
 ## Usage
 
+### Test Accounts
+Use these test accounts to explore different dashboard roles:
+
+| Role | Email | Password | Dashboard Access |
+|------|-------|----------|------------------|
+| 👤 Employee | `employee@example.com` | `ChangeMe123!` | G1 Dashboard |
+| 👨‍💼 Manager | `manager@example.com` | `ChangeMe123!` | G2 Dashboard |
+| 💰 Finance Head | `finance@example.com` | `ChangeMe123!` | G3 Dashboard |
+| 🔧 Admin | `admin@example.com` | `ChangeMe123!` | Admin Panel |
+
 ### User Roles
-- **G1 Users**: Full access to all features including admin panel
-- **G2 Users**: Can create projects and manage invoices
-- **G3 Users**: View-only access to dashboards
+- **G1 Users (Employee)**: Full access to all features including admin panel
+- **G2 Users (Manager)**: Can create projects and manage invoices
+- **G3 Users (Finance Head)**: View-only access to dashboards
 
 ### Key Features
 1. **Dashboard**: View revenue, commission, and project data
