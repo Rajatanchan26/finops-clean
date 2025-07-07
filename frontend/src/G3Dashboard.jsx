@@ -6,7 +6,6 @@ import InvoiceReview from './components/InvoiceReview';
 import BudgetOverview from './components/BudgetOverview';
 import CommissionDashboard from './components/CommissionDashboard';
 import AdvancedFilters from './components/AdvancedFilters';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
 import MobileNavigation from './components/MobileNavigation';
 import DashboardLayout from './components/DashboardLayout';
 
@@ -21,7 +20,6 @@ function G3Dashboard({ user, token, onLogout, onProfileClick }) {
     { id: 'invoices', label: 'Invoices', icon: '📄' },
     { id: 'commission', label: 'Commission', icon: '💸' },
     { id: 'budget', label: 'Budget', icon: '💰' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
   ];
 
   useEffect(() => {
@@ -81,13 +79,6 @@ function G3Dashboard({ user, token, onLogout, onProfileClick }) {
         return (
           <div className="budget-content">
             <BudgetOverview user={user} token={token} scope="all" />
-          </div>
-        );
-      
-      case 'analytics':
-        return (
-          <div className="analytics-content">
-            <AnalyticsDashboard user={user} token={token} />
           </div>
         );
       
